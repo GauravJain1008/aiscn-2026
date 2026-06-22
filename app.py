@@ -185,74 +185,20 @@ CUSTOM_CSS = r"""
 
 /* ====== GLOBAL BASE ====== */
 html, body, .stApp {
-    background-color: var(--bg-main) !important;
     color: var(--text-main) !important;
     font-family: 'Share Tech Mono', 'JetBrains Mono', monospace !important;
     caret-color: var(--neon-green);
 }
 
 .stApp {
-    background:
-        radial-gradient(ellipse at 20% 0%, rgba(0,255,65,0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 100%, rgba(0,229,255,0.06) 0%, transparent 50%),
-        linear-gradient(180deg, #000000 0%, #02060A 50%, #000000 100%) !important;
-    position: relative;
-    overflow-x: hidden;
-}
-
-/* ====== CSS-ONLY "MATRIX RAIN" BACKDROP ====== */
-.stApp::before {
-    content: "";
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background:
-        repeating-linear-gradient(
-            90deg,
-            rgba(0,255,65,0.04) 0px,
-            rgba(0,255,65,0.04) 1px,
-            transparent 1px,
-            transparent 28px
-        ),
-        repeating-linear-gradient(
-            0deg,
-            rgba(0,255,65,0.025) 0px,
-            rgba(0,255,65,0.025) 1px,
-            transparent 1px,
-            transparent 28px
-        );
-    z-index: 0;
-    pointer-events: none;
-    animation: grid-pan 18s linear infinite;
-}
-
-/* ====== CRT SCANLINES OVERLAY ====== */
-.stApp::after {
-    content: "";
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background:
-        repeating-linear-gradient(
-            0deg,
-            var(--scanline) 0px,
-            var(--scanline) 1px,
-            transparent 1px,
-            transparent 3px
-        );
-    z-index: 3;
-    pointer-events: none;
-    animation: scanline-flicker 6s infinite;
-}
-
-@keyframes grid-pan {
-    0%   { background-position: 0 0, 0 0; }
-    100% { background-position: 0 -560px, -560px 0; }
-}
-
-@keyframes scanline-flicker {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.92; }
-    52% { opacity: 1; }
-    97% { opacity: 0.95; }
+    background-color: #000000 !important;
+    background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(0,255,65,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 100%, rgba(0,229,255,0.08) 0%, transparent 55%),
+        repeating-linear-gradient(90deg, rgba(0,255,65,0.035) 0px, rgba(0,255,65,0.035) 1px, transparent 1px, transparent 32px),
+        repeating-linear-gradient(0deg, rgba(0,255,65,0.025) 0px, rgba(0,255,65,0.025) 1px, transparent 1px, transparent 32px),
+        repeating-linear-gradient(0deg, rgba(0,255,65,0.04) 0px, rgba(0,255,65,0.04) 1px, transparent 1px, transparent 3px) !important;
+    background-attachment: fixed !important;
 }
 
 /* ====== HEADINGS ====== */
@@ -267,11 +213,6 @@ header {visibility: hidden;}
 footer {visibility: hidden;}
 #MainMenu {visibility: hidden;}
 
-/* Make main content above the rain */
-.main, .block-container {
-    position: relative !important;
-    z-index: 2 !important;
-}
 .block-container { max-width: 1400px; padding-top: 1rem; padding-bottom: 5rem; }
 
 /* ====== UTILITY CLASSES ====== */
@@ -289,22 +230,18 @@ footer {visibility: hidden;}
 
 /* ====== STATUS BAR ====== */
 .status-bar {
-    position: sticky;
-    top: 0;
-    height: 28px;
     background: #000;
-    border-bottom: 1px solid var(--neon-green);
+    border: 1px solid var(--neon-green);
     color: var(--neon-green);
     font-family: 'VT323', monospace;
     font-size: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
-    z-index: 100;
+    padding: 4px 16px;
     box-shadow: 0 0 12px rgba(0,255,65,0.4);
     letter-spacing: 0.05em;
-    margin: -16px -16px 12px -16px;
+    margin-bottom: 18px;
 }
 .status-bar .left, .status-bar .right {
     display: flex; gap: 18px; align-items: center;
@@ -837,30 +774,11 @@ div[data-testid="stFileUploader"] section button:hover {
     box-shadow: 0 0 8px rgba(0,229,255,0.2) inset;
 }
 
-/* falling code column accent — CSS-only */
-.code-rain {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 1;
-    pointer-events: none;
-    background:
-        linear-gradient(180deg, transparent 0%, rgba(0,255,65,0.04) 50%, transparent 100%);
-    background-size: 100% 200%;
-    animation: rain-fall 9s linear infinite;
-}
-@keyframes rain-fall {
-    0%   { background-position: 0 -100%; }
-    100% { background-position: 0 100%; }
-}
-
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# Animated background accent layer (CSS only, no JS)
-st.markdown('<div class="code-rain"></div>', unsafe_allow_html=True)
-
-# Status bar — rendered with server-side UTC clock (Streamlit reruns refresh it)
+# Status bar — rendered with server-side UTC clock (refreshes on each Streamlit rerun)
 _utc_now = datetime.utcnow().strftime("%H:%M:%S")
 st.markdown(f"""
 <div class="status-bar">
