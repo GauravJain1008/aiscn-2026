@@ -30,13 +30,18 @@ DB_FILE = "submission_registry.json"
 HANDBOOK_PATH = "/home/parrot/AISCN_2026_Handbook.pdf"
 SUBMISSION_LIMIT = 3
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
+def _read_handbook_bytes(path: str, mtime: float, size: int) -> bytes:
+    """Cache keyed by mtime+size so an updated file invalidates automatically."""
+    with open(path, "rb") as f:
+        return f.read()
+
 def load_handbook_bytes() -> bytes:
-    """Loads the AISCN handbook PDF from disk for the download button."""
-    if os.path.exists(HANDBOOK_PATH):
-        with open(HANDBOOK_PATH, "rb") as f:
-            return f.read()
-    return b""
+    """Loads the AISCN handbook PDF from /home/parrot for the download button."""
+    if not os.path.exists(HANDBOOK_PATH):
+        return b""
+    stat = os.stat(HANDBOOK_PATH)
+    return _read_handbook_bytes(HANDBOOK_PATH, stat.st_mtime, stat.st_size)
 
 def is_blocked(email: str) -> bool:
     """Strict global limit: block once total submissions for an email reach SUBMISSION_LIMIT."""
@@ -455,8 +460,183 @@ input:focus {
         inset 0 0 10px rgba(0,229,255,0.18) !important;
 }
 
-/* ====== SMOOTH SCROLL ====== */
-html { scroll-behavior: smooth; }
+/* ====== SMOOTH SCROLL on every container Streamlit might scroll ====== */
+html, body, .stApp, .main,
+[data-testid="stAppViewContainer"],
+[data-testid="stMainBlockContainer"],
+section.main { scroll-behavior: smooth !important; }
+
+/* anchor targets: a touch of offset + give them physical presence so browser scrolls to them */
+#workflow, #submission-portal {
+    display: block;
+    height: 1px;
+    scroll-margin-top: 90px;
+    scroll-snap-margin-top: 90px;
+}
+
+/* ====== 3D PERSPECTIVE STAGE ====== */
+.hero-grid, .timeline-container {
+    perspective: 1400px;
+    transform-style: preserve-3d;
+}
+
+/* ====== 3D CYBER CARDS — tilt + lift on hover ====== */
+.cyber-card {
+    transform-style: preserve-3d;
+    transform: perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0);
+    transition:
+        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.3s ease,
+        box-shadow 0.4s ease,
+        background-color 0.3s ease;
+    will-change: transform;
+}
+.cyber-card:hover {
+    transform: perspective(900px) rotateX(3deg) rotateY(-3deg) translateZ(18px) translateY(-3px);
+    box-shadow:
+        0 18px 38px -10px rgba(0,0,0,0.85),
+        0 0 28px rgba(0,255,65,0.32),
+        0 0 60px rgba(0,255,65,0.15),
+        inset 0 0 30px rgba(0,255,65,0.06);
+}
+/* alternate tilt direction for visual variety */
+.cyber-card:nth-child(2n):hover {
+    transform: perspective(900px) rotateX(3deg) rotateY(3deg) translateZ(18px) translateY(-3px);
+}
+
+/* corner brackets pop forward in 3D on hover */
+.cyber-card .corner {
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+}
+.cyber-card:hover .corner { transform: translateZ(24px); border-color: var(--neon-cyan); }
+
+/* stat numbers float toward viewer */
+.cyber-card:hover .text-neon.mono {
+    text-shadow: 0 0 14px var(--neon-green), 0 0 28px rgba(0,255,65,0.55);
+}
+
+/* ====== 3D BUTTONS — physical press ====== */
+.stButton > button {
+    transform-style: preserve-3d;
+    transform: translateY(0) translateZ(0);
+    transition:
+        transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.25s ease !important;
+}
+.stButton > button:hover {
+    transform: translateY(-3px) translateZ(6px) !important;
+    box-shadow:
+        0 8px 16px -4px rgba(0,255,65,0.45),
+        0 0 24px rgba(0,255,65,0.55),
+        inset 0 0 14px rgba(0,255,65,0.18) !important;
+}
+.stButton > button:active {
+    transform: translateY(1px) translateZ(0) !important;
+    box-shadow: 0 2px 6px rgba(0,255,65,0.4) inset !important;
+    transition-duration: 0.08s !important;
+}
+
+/* download handbook — same 3D physical feel in cyan */
+div[data-testid="stDownloadButton"] > button {
+    transform-style: preserve-3d;
+    transform: translateY(0) translateZ(0);
+    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, background-color 0.18s ease, color 0.18s ease !important;
+}
+div[data-testid="stDownloadButton"] > button:hover {
+    transform: translateY(-3px) translateZ(6px) !important;
+    box-shadow:
+        0 8px 16px -4px rgba(0,229,255,0.45),
+        0 0 24px rgba(0,229,255,0.55),
+        inset 0 0 14px rgba(0,229,255,0.18) !important;
+}
+div[data-testid="stDownloadButton"] > button:active {
+    transform: translateY(1px) translateZ(0) !important;
+}
+
+/* ====== HERO CTA buttons — beefier 3D ====== */
+a[href="#submission-portal"], a[href="#workflow"] {
+    transform-style: preserve-3d;
+    transform: translateY(0) translateZ(0);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, background-color 0.2s ease, color 0.2s ease !important;
+}
+a[href="#submission-portal"]:hover, a[href="#workflow"]:hover {
+    transform: translateY(-3px) translateZ(10px) !important;
+    box-shadow:
+        0 12px 22px -6px rgba(0,255,65,0.5),
+        0 0 28px rgba(0,255,65,0.6),
+        inset 0 0 14px rgba(0,255,65,0.15) !important;
+}
+a[href="#submission-portal"]:active, a[href="#workflow"]:active {
+    transform: translateY(1px) translateZ(0) !important;
+}
+
+/* ====== INPUTS — subtle depth ====== */
+input {
+    transform: translateZ(0);
+    box-shadow:
+        0 0 8px rgba(0,255,65,0.18) inset,
+        0 2px 0 rgba(0,255,65,0.12) !important;
+}
+
+/* ====== TITLE — soft 3D lift on hover ====== */
+.cyber-title {
+    transform: translateZ(0) rotateX(0);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), text-shadow 0.6s ease;
+}
+.cyber-title:hover {
+    transform: translateZ(20px) rotateX(-4deg);
+}
+
+/* ====== STAT CARDS gentle float ====== */
+.cyber-card-top-accent { animation: stat-float 7s ease-in-out infinite; }
+.cyber-card-top-accent:nth-child(1) { animation-delay: 0s; }
+.cyber-card-top-accent:nth-child(2) { animation-delay: -1.4s; }
+.cyber-card-top-accent:nth-child(3) { animation-delay: -2.8s; }
+.cyber-card-top-accent:nth-child(4) { animation-delay: -4.2s; }
+.cyber-card-top-accent:nth-child(5) { animation-delay: -5.6s; }
+@keyframes stat-float {
+    0%, 100% { transform: translateY(0) translateZ(0); }
+    50%      { transform: translateY(-5px) translateZ(0); }
+}
+/* don't let float fight hover */
+.cyber-card-top-accent:hover { animation: none; }
+
+/* ====== TIMELINE DOTS pop forward ====== */
+.timeline-dot {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.timeline-item:hover .timeline-dot {
+    transform: scale(1.4) translateZ(20px);
+    box-shadow: 0 0 18px var(--neon-cyan), 0 0 34px rgba(0,229,255,0.7);
+    background: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+}
+
+/* ====== TERM-WINDOW subtle 3D ====== */
+.term-window {
+    transform: perspective(1200px) rotateX(0deg) translateZ(0);
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+.term-window:hover {
+    transform: perspective(1200px) rotateX(2deg) translateZ(14px);
+    box-shadow:
+        0 24px 50px -14px rgba(0,0,0,0.9),
+        0 0 36px rgba(0,255,65,0.3),
+        inset 0 0 36px rgba(0,255,65,0.05);
+}
+
+/* ====== CHIP press depth ====== */
+.chip { transition: transform 0.18s ease, box-shadow 0.25s ease; }
+.chip:hover { transform: translateY(-1px) translateZ(4px); box-shadow: 0 4px 10px -2px rgba(0,255,65,0.35), inset 0 0 10px rgba(0,255,65,0.18); }
+
+/* ====== ACCESS GRANTED slight 3D tilt ====== */
+.access-flash {
+    transform: perspective(600px) rotateX(0);
+    transition: transform 0.35s ease;
+}
+.access-flash:hover { transform: perspective(600px) rotateX(-8deg) translateZ(8px) scale(1.04); }
 
 /* ====== LINK HOVER GROW UNDERLINE ====== */
 a:not([href^="#"]) {
@@ -1074,8 +1254,10 @@ captures to prompt injections, from SOC consoles to agentic AI threat models.
 </p>
 </div>
 <div style="display: flex; gap: 1rem; margin-top: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
-    <a href="#submission-portal" target="_top">[ENTER SUBMISSION PORTAL] &rarr;</a>
-    <a href="#workflow" target="_top">[VIEW WORKFLOW] &darr;</a>
+    <a href="#submission-portal"
+       onclick="var t=document.getElementById('submission-portal');if(t){t.scrollIntoView({behavior:'smooth',block:'start'});history.replaceState(null,'','#submission-portal');return false;}">[ENTER SUBMISSION PORTAL] &rarr;</a>
+    <a href="#workflow"
+       onclick="var t=document.getElementById('workflow');if(t){t.scrollIntoView({behavior:'smooth',block:'start'});history.replaceState(null,'','#workflow');return false;}">[VIEW WORKFLOW] &darr;</a>
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; font-family: 'Share Tech Mono', monospace; font-size: 12px; margin-top: 1.5rem;">
 <div><span class="text-neon">// CODE</span> <span class="text-muted">AISCN-2026-S1</span></div>
