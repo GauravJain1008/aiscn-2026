@@ -27,19 +27,42 @@ st.set_page_config(
 # BACKEND LOGIC & HELPERS
 # =========================
 DB_FILE = "submission_registry.json"
-HANDBOOK_PATH = "/home/parrot/AISCN_2026_Handbook.pdf"
+# Use a relative path – place the PDF in the same directory as app.py
+HANDBOOK_PATH = os.path.join(os.path.dirname(__file__), "AISCN_2026_Handbook.pdf")
 SUBMISSION_LIMIT = 3
 
+# ---------- secrets validation ----------
+REQUIRED_SECRETS = {
+    "oauth": ["client_id", "client_secret", "refresh_token"],
+    "drive": ["folder_id"],
+    "smtp": ["mail_user", "mail_pass", "mail_to"]
+}
+
+def check_secrets() -> bool:
+    """Return True if all required secrets exist, else False."""
+    try:
+        for section, keys in REQUIRED_SECRETS.items():
+            for key in keys:
+                _ = st.secrets[section][key]
+        return True
+    except (KeyError, AttributeError):
+        return False
+
+SECRETS_OK = check_secrets()
+
+# ---------- handbook loader ----------
 @st.cache_data
 def load_handbook_bytes() -> bytes:
-    """Loads the AISCN handbook PDF from disk for the download button."""
+    """Load the handbook PDF from disk. Returns empty bytes if not found."""
     if os.path.exists(HANDBOOK_PATH):
         with open(HANDBOOK_PATH, "rb") as f:
             return f.read()
     return b""
 
+HANDBOOK_AVAILABLE = bool(load_handbook_bytes())
+
+# ---------- submission registry ----------
 def is_blocked(email: str) -> bool:
-    """Strict global limit: block once total submissions for an email reach SUBMISSION_LIMIT."""
     if not os.path.exists(DB_FILE):
         return False
     with open(DB_FILE, 'r') as f:
@@ -47,7 +70,6 @@ def is_blocked(email: str) -> bool:
     return len(db.get(email.lower(), [])) >= SUBMISSION_LIMIT
 
 def check_duplicate(email: str, sub_type: str) -> bool:
-    """Checks local JSON registry to prevent duplicate submissions."""
     if os.path.exists(DB_FILE):
         with open(DB_FILE, 'r') as f:
             db = json.load(f)
@@ -55,7 +77,6 @@ def check_duplicate(email: str, sub_type: str) -> bool:
     return False
 
 def log_submission(email: str, sub_type: str):
-    """Logs successful submission to local JSON registry."""
     db = {}
     if os.path.exists(DB_FILE):
         with open(DB_FILE, 'r') as f:
@@ -67,10 +88,10 @@ def log_submission(email: str, sub_type: str):
     with open(DB_FILE, 'w') as f:
         json.dump(db, f)
 
+# ---------- Drive upload ----------
 def upload_to_drive(file_bytes: bytes, file_name: str) -> str:
-    """Uploads file to Google Drive via OAuth Refresh Token and returns View Link."""
-    
-    # 1. Load the new OAuth credentials from your secrets.toml
+    if not SECRETS_OK:
+        raise RuntimeError("Secrets are missing. Please configure them in Streamlit Cloud.")
     creds_info = st.secrets["oauth"]
     creds = Credentials(
         token=None,
@@ -79,33 +100,27 @@ def upload_to_drive(file_bytes: bytes, file_name: str) -> str:
         client_id=creds_info["client_id"],
         client_secret=creds_info["client_secret"]
     )
-    
-    # 2. Initialize the Drive service acting as YOUR account
     service = build('drive', 'v3', credentials=creds)
     folder_id = st.secrets["drive"]["folder_id"]
-    
     file_metadata = {
         'name': file_name,
         'parents': [folder_id]
     }
-    
-    # 3. Stream the file directly up to the folder
     media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='application/pdf', resumable=True)
     file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
-    
     return file.get('webViewLink')
 
+# ---------- admin email ----------
 def send_admin_email(name: str, email: str, sub_type: str, drive_link: str, timestamp: str):
-    """Sends a notification email to the admin with the Drive link."""
+    if not SECRETS_OK:
+        raise RuntimeError("Secrets are missing. Cannot send email.")
     mail_user = st.secrets["smtp"]["mail_user"]
     mail_pass = st.secrets["smtp"]["mail_pass"]
     mail_to = st.secrets["smtp"]["mail_to"]
-    
     msg = EmailMessage()
     msg["Subject"] = f"[AISCN'26 NEW UPLINK] {sub_type} - {name}"
     msg["From"] = mail_user
     msg["To"] = mail_to
-    
     body = f"""
     New Project Submission Received!
     
@@ -121,7 +136,6 @@ def send_admin_email(name: str, email: str, sub_type: str, drive_link: str, time
     {drive_link}
     """
     msg.set_content(body)
-    
     ctx = ssl.create_default_context()
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
         server.ehlo()
@@ -130,6 +144,7 @@ def send_admin_email(name: str, email: str, sub_type: str, drive_link: str, time
         server.login(mail_user, mail_pass)
         server.send_message(msg)
 
+# ---------- main submission handler ----------
 def handle_submission(name: str, email: str, uploaded_file, sub_type: str):
     if not name or not email:
         st.error(">> ERR: OPERATOR IDENTITY (NAME & EMAIL) REQUIRED.")
@@ -149,25 +164,13 @@ def handle_submission(name: str, email: str, uploaded_file, sub_type: str):
             file_bytes = uploaded_file.read()
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             safe_name = name.replace(" ", "_").replace("/", "")
-            
-            # File naming formatting
             drive_file_name = f"{sub_type}_{safe_name}_{email}_{timestamp}.pdf"
             
-            # 1. Upload to Drive
             drive_link = upload_to_drive(file_bytes, drive_file_name)
-            
-            # 2. Send Email Notification
             human_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             send_admin_email(name, email, sub_type, drive_link, human_time)
-            
-            # 3. Log Submission locally to block spam
             log_submission(email, sub_type)
-
-            # 4. Clear the cached file from session state after success
-            key_map = {"MP1": "mp1_file", "MP2": "mp2_file", "MJP": "mjp_file"}
-            st.session_state.pop(key_map.get(sub_type, ""), None)
             
-        # === INJECT DRIVE LINK INTO SCREEN ON SUCCESS ===
         st.success(f">> UPLINK SUCCESSFUL. {sub_type} SECURED IN VAULT.")
         st.markdown(
             f'<div class="mono text-cyan text-xs" style="margin-top:0.5rem; padding:10px; background:rgba(0, 229, 255, 0.05); border:1px solid var(--neon-cyan); border-radius:4px;">'
@@ -181,7 +184,7 @@ def handle_submission(name: str, email: str, uploaded_file, sub_type: str):
         st.error(f">> CRITICAL UPLINK FAILURE: {str(e)}")
 
 # =========================
-# INJECTED CSS
+# CSS & UI (unchanged)
 # =========================
 CUSTOM_CSS = """
 <style>
@@ -451,16 +454,19 @@ captures to prompt injections, from SOC consoles to agentic AI threat models.
 </div>
 """, unsafe_allow_html=True)
 
-# === FUNCTIONAL DOWNLOAD HANDBOOK BUTTON (styled as .btn-outline) ===
-dl_col, _ = st.columns([1, 4])
-with dl_col:
-    st.download_button(
-        label="DOWNLOAD HANDBOOK ↓",
-        data=load_handbook_bytes(),
-        file_name="AISCN_Handbook_2026.pdf",
-        mime="application/pdf",
-        key="handbook_dl",
-    )
+# === DOWNLOAD HANDBOOK BUTTON ===
+if HANDBOOK_AVAILABLE:
+    dl_col, _ = st.columns([1, 4])
+    with dl_col:
+        st.download_button(
+            label="DOWNLOAD HANDBOOK ↓",
+            data=load_handbook_bytes(),
+            file_name="AISCN_Handbook_2026.pdf",
+            mime="application/pdf",
+            key="handbook_dl",
+        )
+else:
+    st.warning("📄 Handbook PDF not found. Please place 'AISCN_2026_Handbook.pdf' in the app directory.", icon="⚠️")
 
 # =========================
 # 2. WORKFLOW SECTION
@@ -697,6 +703,18 @@ st.markdown("""
 # 4. SUBMISSION PORTAL
 # =========================
 st.markdown('<div id="submission-portal"></div>', unsafe_allow_html=True)
+
+# Show a global warning if secrets are missing
+if not SECRETS_OK:
+    st.error(
+        "🚨 **Missing or invalid secrets!**\n\n"
+        "Upload functionality is disabled. Please set the required secrets in your Streamlit Cloud dashboard:\n"
+        "- `oauth.client_id`, `oauth.client_secret`, `oauth.refresh_token`\n"
+        "- `drive.folder_id`\n"
+        "- `smtp.mail_user`, `smtp.mail_pass`, `smtp.mail_to`\n\n"
+        "Refer to the [Streamlit Secrets Management](https://docs.streamlit.io/streamlit-cloud/get-started/deploy-an-app/connect-to-data-sources/secrets-management) guide."
+    )
+
 # OPERATOR IDENTITY SECTION
 st.markdown("""<div class="mono text-neon text-xs tracking-widest mb-2" style="max-width: 900px; margin: 0 auto;">// OPERATOR IDENTITY</div>""", unsafe_allow_html=True)
 id_col1, id_col2 = st.columns(2)
@@ -718,12 +736,10 @@ with col1:
 <div class="text-xs text-muted" style="margin-bottom: 1.5rem;">PDF format only · Max 20 MB</div>
     """, unsafe_allow_html=True)
     
-    mp1_file = st.file_uploader("Upload MP1", type=["pdf"], label_visibility="collapsed", key="mp1")
-    # ── FIX: persist uploaded file across reruns ──
-    if mp1_file is not None:
-        st.session_state["mp1_file"] = mp1_file
-    if st.button("SUBMIT MP1", key="b1b", type="primary"):
-        handle_submission(user_name, user_email, st.session_state.get("mp1_file"), "MP1")
+    mp1_file = st.file_uploader("Upload MP1", type=["pdf"], label_visibility="collapsed", key="mp1_upload")
+    disabled = not SECRETS_OK
+    if st.button("SUBMIT MP1", key="b1b", type="primary", disabled=disabled):
+        handle_submission(user_name, user_email, mp1_file, "MP1")
 
 with col2:
     st.markdown("""
@@ -734,12 +750,9 @@ with col2:
 <div class="text-xs text-muted" style="margin-bottom: 1.5rem;">PDF format only · Max 20 MB</div>
     """, unsafe_allow_html=True)
     
-    mp2_file = st.file_uploader("Upload MP2", type=["pdf"], label_visibility="collapsed", key="mp2")
-    # ── FIX: persist uploaded file across reruns ──
-    if mp2_file is not None:
-        st.session_state["mp2_file"] = mp2_file
-    if st.button("SUBMIT MP2", key="b2b", type="primary"):
-        handle_submission(user_name, user_email, st.session_state.get("mp2_file"), "MP2")
+    mp2_file = st.file_uploader("Upload MP2", type=["pdf"], label_visibility="collapsed", key="mp2_upload")
+    if st.button("SUBMIT MP2", key="b2b", type="primary", disabled=disabled):
+        handle_submission(user_name, user_email, mp2_file, "MP2")
 
 with col3:
     st.markdown("""
@@ -750,13 +763,9 @@ with col3:
 <div class="text-xs text-muted" style="margin-bottom: 1.5rem;">PDF format only · Max 20 MB</div>
     """, unsafe_allow_html=True)
     
-    mjp_file = st.file_uploader("Upload MJP", type=["pdf"], label_visibility="collapsed", key="mjp")
-    # ── FIX: persist uploaded file across reruns ──
-    if mjp_file is not None:
-        st.session_state["mjp_file"] = mjp_file
-    if st.button("SUBMIT MJP", key="b3b", type="primary"):
-        handle_submission(user_name, user_email, st.session_state.get("mjp_file"), "MJP")
-
+    mjp_file = st.file_uploader("Upload MJP", type=["pdf"], label_visibility="collapsed", key="mjp_upload")
+    if st.button("SUBMIT MJP", key="b3b", type="primary", disabled=disabled):
+        handle_submission(user_name, user_email, mjp_file, "MJP")
 
 # =========================
 # 5. FOOTER PANELS
