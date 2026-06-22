@@ -398,21 +398,15 @@ captures to prompt injections, from SOC consoles to agentic AI threat models.
 </p>
 </div>
 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-    <!-- Button 1 -->
-    <a href="#submission-portal" target="_top" style="text-decoration: none;">
-        <button style="background-color: #00ffaa; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">
-            ENTER SUBMISSION PORTAL →
-        </button>
+    <a href="#submission-portal" target="_top" style="display:inline-block; background:#00ffaa; color:#000; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; font-family:inherit; text-decoration:none; border-radius:4px;">
+        ENTER SUBMISSION PORTAL →
     </a>
 
-    <!-- Button 2 -->
-    <a href="#workflow" target="_top" style="text-decoration: none;">
-        <button style="background-color: transparent; color: #00ffaa; border: 1px solid #00ffaa; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">
-            VIEW WORKFLOW ↓
-        </button>
+    <a href="#workflow" target="_top" style="display:inline-block; background:transparent; color:#00ffaa; border:1px solid #00ffaa; padding:10px 20px; font-weight:bold; cursor:pointer; font-family:inherit; text-decoration:none; border-radius:4px;">
+        VIEW WORKFLOW ↓
     </a>
 </div>
-div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
 <div><span class="text-neon">// CODE</span> <span class="text-muted">AISCN-2026-S1</span></div>
 <div><span class="text-neon">// MODE</span> <span class="text-muted">Online / Hybrid · Live</span></div>
 <div><span class="text-neon">// CORE LEAD</span> <span class="text-muted">Gaurav Jain · Ganesh Kanojiya</span></div>
@@ -465,6 +459,7 @@ with dl_col:
 # =========================
 # 2. WORKFLOW SECTION
 # =========================
+st.markdown('<div id="workflow"></div>', unsafe_allow_html=True)
 st.markdown("""
 <div style="text-align: center; margin-bottom: 3rem;">
 <div class="mono text-neon text-xs tracking-widest mb-2">// PROGRAM PIPELINE</div>
@@ -695,15 +690,7 @@ st.markdown("""
 # =========================
 # 4. SUBMISSION PORTAL
 # =========================
-st.markdown("""
-<div style="display: flex; gap: 1rem; margin-top: 2rem;">
-    <button style="background-color: #00ffaa; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer;">ENTER SUBMISSION PORTAL →</button>
-    <button style="background-color: transparent; color: #00ffaa; border: 1px solid #00ffaa; padding: 10px 20px; font-weight: bold; cursor: pointer;">VIEW WORKFLOW ↓</button>
-</div>
-
-<!-- Niche wali line ka missing bracket fix kar diya hai -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
-""", unsafe_allow_html=True)
+st.markdown('<div id="submission-portal"></div>', unsafe_allow_html=True)
 # OPERATOR IDENTITY SECTION
 st.markdown("""<div class="mono text-neon text-xs tracking-widest mb-2" style="max-width: 900px; margin: 0 auto;">// OPERATOR IDENTITY</div>""", unsafe_allow_html=True)
 id_col1, id_col2 = st.columns(2)
