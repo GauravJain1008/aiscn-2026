@@ -184,7 +184,7 @@ CUSTOM_CSS = r"""
 }
 
 /* ====== GLOBAL BASE ====== */
-html, body, [class*="css"], .stApp {
+html, body, .stApp {
     background-color: var(--bg-main) !important;
     color: var(--text-main) !important;
     font-family: 'Share Tech Mono', 'JetBrains Mono', monospace !important;
@@ -193,26 +193,40 @@ html, body, [class*="css"], .stApp {
 
 .stApp {
     background:
-        radial-gradient(ellipse at 20% 0%, rgba(0,255,65,0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 100%, rgba(0,229,255,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 0%, rgba(0,255,65,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(0,229,255,0.06) 0%, transparent 50%),
         linear-gradient(180deg, #000000 0%, #02060A 50%, #000000 100%) !important;
     position: relative;
     overflow-x: hidden;
 }
 
-/* ====== MATRIX RAIN CANVAS ====== */
-#matrix-canvas {
-    position: fixed !important;
-    top: 0; left: 0;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 0 !important;
-    opacity: 0.18;
+/* ====== CSS-ONLY "MATRIX RAIN" BACKDROP ====== */
+.stApp::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(0,255,65,0.04) 0px,
+            rgba(0,255,65,0.04) 1px,
+            transparent 1px,
+            transparent 28px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            rgba(0,255,65,0.025) 0px,
+            rgba(0,255,65,0.025) 1px,
+            transparent 1px,
+            transparent 28px
+        );
+    z-index: 0;
     pointer-events: none;
+    animation: grid-pan 18s linear infinite;
 }
 
 /* ====== CRT SCANLINES OVERLAY ====== */
-.stApp::before {
+.stApp::after {
     content: "";
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -224,19 +238,14 @@ html, body, [class*="css"], .stApp {
             transparent 1px,
             transparent 3px
         );
-    z-index: 9998;
+    z-index: 3;
     pointer-events: none;
     animation: scanline-flicker 6s infinite;
 }
 
-/* ====== CRT VIGNETTE ====== */
-.stApp::after {
-    content: "";
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
-    z-index: 9997;
-    pointer-events: none;
+@keyframes grid-pan {
+    0%   { background-position: 0 0, 0 0; }
+    100% { background-position: 0 -560px, -560px 0; }
 }
 
 @keyframes scanline-flicker {
@@ -280,21 +289,22 @@ footer {visibility: hidden;}
 
 /* ====== STATUS BAR ====== */
 .status-bar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 26px;
+    position: sticky;
+    top: 0;
+    height: 28px;
     background: #000;
     border-bottom: 1px solid var(--neon-green);
     color: var(--neon-green);
     font-family: 'VT323', monospace;
-    font-size: 14px;
+    font-size: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 16px;
-    z-index: 9999;
+    z-index: 100;
     box-shadow: 0 0 12px rgba(0,255,65,0.4);
     letter-spacing: 0.05em;
+    margin: -16px -16px 12px -16px;
 }
 .status-bar .left, .status-bar .right {
     display: flex; gap: 18px; align-items: center;
@@ -827,10 +837,32 @@ div[data-testid="stFileUploader"] section button:hover {
     box-shadow: 0 0 8px rgba(0,229,255,0.2) inset;
 }
 
-</style>
+/* falling code column accent — CSS-only */
+.code-rain {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, transparent 0%, rgba(0,255,65,0.04) 50%, transparent 100%);
+    background-size: 100% 200%;
+    animation: rain-fall 9s linear infinite;
+}
+@keyframes rain-fall {
+    0%   { background-position: 0 -100%; }
+    100% { background-position: 0 100%; }
+}
 
-<!-- MATRIX RAIN CANVAS + STATUS BAR -->
-<canvas id="matrix-canvas"></canvas>
+</style>
+"""
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+# Animated background accent layer (CSS only, no JS)
+st.markdown('<div class="code-rain"></div>', unsafe_allow_html=True)
+
+# Status bar — rendered with server-side UTC clock (Streamlit reruns refresh it)
+_utc_now = datetime.utcnow().strftime("%H:%M:%S")
+st.markdown(f"""
 <div class="status-bar">
   <div class="left">
     <span class="blink">●</span>
@@ -839,62 +871,12 @@ div[data-testid="stFileUploader"] section button:hover {
     <span>TLS/1.3</span>
   </div>
   <div class="right">
-    <span id="clock">--:--:--</span>
+    <span>{_utc_now} UTC</span>
     <span class="blink">▮</span>
     <span>COHORT::2026</span>
   </div>
 </div>
-
-<script>
-// ============ MATRIX RAIN ============
-(function() {
-  const canvas = document.getElementById("matrix-canvas");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  let w, h;
-  const chars = "01アァカサタナハマヤラワABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*<>?/\\|+=-_".split("");
-  let drops = [];
-  const fontSize = 14;
-
-  function resize() {
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-    const cols = Math.floor(w / fontSize);
-    drops = new Array(cols).fill(1).map(() => Math.random() * h / fontSize);
-  }
-  window.addEventListener("resize", resize);
-  resize();
-
-  function draw() {
-    ctx.fillStyle = "rgba(0,0,0,0.08)";
-    ctx.fillRect(0, 0, w, h);
-    ctx.font = fontSize + "px 'Share Tech Mono', monospace";
-    for (let i = 0; i < drops.length; i++) {
-      const text = chars[Math.floor(Math.random() * chars.length)];
-      const x = i * fontSize;
-      const y = drops[i] * fontSize;
-      // head glow
-      ctx.fillStyle = (Math.random() > 0.975) ? "#FFFFFF" : "#00FF41";
-      ctx.fillText(text, x, y);
-      if (y > h && Math.random() > 0.972) drops[i] = 0;
-      drops[i] += 1;
-    }
-  }
-  setInterval(draw, 55);
-
-  // ============ CLOCK ============
-  function tick() {
-    const el = document.getElementById("clock");
-    if (!el) return;
-    const d = new Date();
-    const pad = n => n < 10 ? "0" + n : n;
-    el.textContent = pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + ":" + pad(d.getUTCSeconds()) + " UTC";
-  }
-  setInterval(tick, 1000); tick();
-})();
-</script>
-"""
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # =========================
 # BOOT BANNER
