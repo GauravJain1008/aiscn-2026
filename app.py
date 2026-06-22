@@ -17,7 +17,7 @@ from google.oauth2.credentials import Credentials
 # PAGE CONFIGURATION
 # =========================
 st.set_page_config(
-    page_title="AISCN'26 // Portal",
+    page_title="AISCN'26 // root@aiscn:~#",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -69,8 +69,6 @@ def log_submission(email: str, sub_type: str):
 
 def upload_to_drive(file_bytes: bytes, file_name: str) -> str:
     """Uploads file to Google Drive via OAuth Refresh Token and returns View Link."""
-    
-    # 1. Load the new OAuth credentials from your secrets.toml
     creds_info = st.secrets["oauth"]
     creds = Credentials(
         token=None,
@@ -79,20 +77,14 @@ def upload_to_drive(file_bytes: bytes, file_name: str) -> str:
         client_id=creds_info["client_id"],
         client_secret=creds_info["client_secret"]
     )
-    
-    # 2. Initialize the Drive service acting as YOUR account
     service = build('drive', 'v3', credentials=creds)
     folder_id = st.secrets["drive"]["folder_id"]
-    
     file_metadata = {
         'name': file_name,
         'parents': [folder_id]
     }
-    
-    # 3. Stream the file directly up to the folder
     media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='application/pdf', resumable=True)
     file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
-    
     return file.get('webViewLink')
 
 def send_admin_email(name: str, email: str, sub_type: str, drive_link: str, timestamp: str):
@@ -100,28 +92,25 @@ def send_admin_email(name: str, email: str, sub_type: str, drive_link: str, time
     mail_user = st.secrets["smtp"]["mail_user"]
     mail_pass = st.secrets["smtp"]["mail_pass"]
     mail_to = st.secrets["smtp"]["mail_to"]
-    
     msg = EmailMessage()
     msg["Subject"] = f"[AISCN'26 NEW UPLINK] {sub_type} - {name}"
     msg["From"] = mail_user
     msg["To"] = mail_to
-    
     body = f"""
     New Project Submission Received!
-    
+
     OPERATOR DETAILS:
     -----------------
     Name: {name}
     Email: {email}
     Submission Type: {sub_type}
     Timestamp: {timestamp}
-    
+
     DRIVE LINK:
     -----------
     {drive_link}
     """
     msg.set_content(body)
-    
     ctx = ssl.create_default_context()
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
         server.ehlo()
@@ -149,312 +138,932 @@ def handle_submission(name: str, email: str, uploaded_file, sub_type: str):
             file_bytes = uploaded_file.read()
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             safe_name = name.replace(" ", "_").replace("/", "")
-            
-            # File naming formatting
             drive_file_name = f"{sub_type}_{safe_name}_{email}_{timestamp}.pdf"
-            
-            # 1. Upload to Drive
             drive_link = upload_to_drive(file_bytes, drive_file_name)
-            
-            # 2. Send Email Notification
             human_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             send_admin_email(name, email, sub_type, drive_link, human_time)
-            
-            # 3. Log Submission locally to block spam
             log_submission(email, sub_type)
-
-            # 4. Clear the cached file from session state after success
             key_map = {"MP1": "mp1_file", "MP2": "mp2_file", "MJP": "mjp_file"}
             st.session_state.pop(key_map.get(sub_type, ""), None)
-            
-        # === INJECT DRIVE LINK INTO SCREEN ON SUCCESS ===
+
         st.success(f">> UPLINK SUCCESSFUL. {sub_type} SECURED IN VAULT.")
         st.markdown(
             f'<div class="mono text-cyan text-xs" style="margin-top:0.5rem; padding:10px; background:rgba(0, 229, 255, 0.05); border:1px solid var(--neon-cyan); border-radius:4px;">'
             f'> FILE_ACCESS_URL: <a href="{drive_link}" target="_blank" style="color:var(--neon-cyan); text-decoration:underline; font-weight:bold;">{drive_link}</a>'
-            f'</div>', 
+            f'</div>',
             unsafe_allow_html=True
         )
         st.balloons()
-        
+
     except Exception as e:
         st.error(f">> CRITICAL UPLINK FAILURE: {str(e)}")
 
 # =========================
-# INJECTED CSS
+# INJECTED CSS — HACKER TERMINAL THEME
 # =========================
-CUSTOM_CSS = """
+CUSTOM_CSS = r"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Major+Mono+Display&family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --bg-main: #05080A;
-    --bg-card: #0A0F14;
-    --bg-card-hover: #0E151C;
-    --neon-green: #00FF88;
+    --bg-main: #000000;
+    --bg-deep: #02060A;
+    --bg-card: #07100C;
+    --bg-card-hover: #0B1812;
+    --neon-green: #00FF41;
+    --neon-green-soft: #00C235;
     --neon-cyan: #00E5FF;
-    --text-main: #E6EDF3;
-    --text-muted: #7D8590;
-    --border-color: #1A232C;
+    --neon-amber: #FFB000;
+    --neon-red: #FF003C;
+    --neon-magenta: #FF00FF;
+    --text-main: #B8FFC8;
+    --text-muted: #5A8A6A;
+    --border-color: #0F2D1B;
+    --border-glow: rgba(0, 255, 65, 0.35);
+    --scanline: rgba(0, 255, 65, 0.04);
 }
 
+/* ====== GLOBAL BASE ====== */
 html, body, [class*="css"], .stApp {
     background-color: var(--bg-main) !important;
     color: var(--text-main) !important;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Share Tech Mono', 'JetBrains Mono', monospace !important;
+    caret-color: var(--neon-green);
 }
 
+.stApp {
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(0,255,65,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(0,229,255,0.05) 0%, transparent 50%),
+        linear-gradient(180deg, #000000 0%, #02060A 50%, #000000 100%) !important;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* ====== MATRIX RAIN CANVAS ====== */
+#matrix-canvas {
+    position: fixed !important;
+    top: 0; left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 0 !important;
+    opacity: 0.18;
+    pointer-events: none;
+}
+
+/* ====== CRT SCANLINES OVERLAY ====== */
+.stApp::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            var(--scanline) 0px,
+            var(--scanline) 1px,
+            transparent 1px,
+            transparent 3px
+        );
+    z-index: 9998;
+    pointer-events: none;
+    animation: scanline-flicker 6s infinite;
+}
+
+/* ====== CRT VIGNETTE ====== */
+.stApp::after {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+    z-index: 9997;
+    pointer-events: none;
+}
+
+@keyframes scanline-flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.92; }
+    52% { opacity: 1; }
+    97% { opacity: 0.95; }
+}
+
+/* ====== HEADINGS ====== */
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Fira Code', monospace !important;
+    font-family: 'Share Tech Mono', 'JetBrains Mono', monospace !important;
+    color: var(--text-main) !important;
+    text-shadow: 0 0 8px rgba(0,255,65,0.4);
+    letter-spacing: 0.04em;
 }
 
 header {visibility: hidden;}
 footer {visibility: hidden;}
-.block-container { max-width: 1400px; padding-top: 2rem; padding-bottom: 5rem; }
+#MainMenu {visibility: hidden;}
 
-.mono { font-family: 'Fira Code', monospace; }
-.text-neon { color: var(--neon-green); }
-.text-cyan { color: var(--neon-cyan); }
+/* Make main content above the rain */
+.main, .block-container {
+    position: relative !important;
+    z-index: 2 !important;
+}
+.block-container { max-width: 1400px; padding-top: 1rem; padding-bottom: 5rem; }
+
+/* ====== UTILITY CLASSES ====== */
+.mono { font-family: 'JetBrains Mono', 'Share Tech Mono', monospace; }
+.term { font-family: 'VT323', 'Share Tech Mono', monospace; }
+.text-neon { color: var(--neon-green); text-shadow: 0 0 6px rgba(0,255,65,0.6); }
+.text-cyan { color: var(--neon-cyan); text-shadow: 0 0 6px rgba(0,229,255,0.5); }
+.text-amber { color: var(--neon-amber); text-shadow: 0 0 6px rgba(255,176,0,0.5); }
+.text-red { color: var(--neon-red); text-shadow: 0 0 6px rgba(255,0,60,0.5); }
 .text-muted { color: var(--text-muted); }
 .text-xs { font-size: 0.75rem; }
 .text-sm { font-size: 0.875rem; }
-.tracking-wide { letter-spacing: 0.05em; }
-.tracking-widest { letter-spacing: 0.1em; }
+.tracking-wide { letter-spacing: 0.08em; }
+.tracking-widest { letter-spacing: 0.15em; }
 
+/* ====== STATUS BAR ====== */
+.status-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 26px;
+    background: #000;
+    border-bottom: 1px solid var(--neon-green);
+    color: var(--neon-green);
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 9999;
+    box-shadow: 0 0 12px rgba(0,255,65,0.4);
+    letter-spacing: 0.05em;
+}
+.status-bar .left, .status-bar .right {
+    display: flex; gap: 18px; align-items: center;
+}
+.status-bar .blink { animation: status-blink 1s steps(2) infinite; }
+@keyframes status-blink {
+    50% { opacity: 0; }
+}
+
+/* ====== BOOT BANNER ====== */
+.boot-banner {
+    margin-top: 40px;
+    padding: 14px 18px;
+    background: rgba(0, 20, 5, 0.6);
+    border: 1px solid var(--neon-green);
+    border-radius: 0;
+    font-family: 'VT323', monospace;
+    color: var(--neon-green);
+    font-size: 16px;
+    line-height: 1.4;
+    position: relative;
+    box-shadow:
+        0 0 20px rgba(0,255,65,0.25),
+        inset 0 0 25px rgba(0,255,65,0.05);
+    overflow: hidden;
+}
+.boot-banner::before {
+    content: "";
+    position: absolute; top: 0; left: -100%;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+    animation: scan-pass 3s linear infinite;
+}
+@keyframes scan-pass {
+    100% { left: 100%; }
+}
+.boot-line { display: block; }
+.boot-line .ok { color: #00FF41; text-shadow: 0 0 6px #00FF41; }
+.boot-line .warn { color: var(--neon-amber); }
+
+/* ====== ASCII BANNER ====== */
+.ascii-banner {
+    font-family: 'VT323', 'Share Tech Mono', monospace;
+    color: var(--neon-green);
+    white-space: pre;
+    line-height: 1.0;
+    font-size: 12px;
+    text-shadow: 0 0 8px rgba(0,255,65,0.6);
+    margin: 1rem 0;
+    overflow-x: auto;
+}
+
+/* ====== GLITCH TITLE ====== */
+.glitch {
+    position: relative;
+    color: var(--neon-green);
+    font-family: 'Major Mono Display', 'Share Tech Mono', monospace !important;
+    font-size: 6rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-shadow:
+        0 0 4px var(--neon-green),
+        0 0 14px rgba(0,255,65,0.55),
+        0 0 38px rgba(0,255,65,0.25);
+    display: inline-block;
+}
+.glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+}
+.glitch::before {
+    color: var(--neon-cyan);
+    text-shadow: 2px 0 var(--neon-cyan);
+    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+    animation: glitch-top 3.4s infinite linear alternate-reverse;
+}
+.glitch::after {
+    color: var(--neon-magenta);
+    text-shadow: -2px 0 var(--neon-magenta);
+    clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+    animation: glitch-bot 2.7s infinite linear alternate-reverse;
+}
+@keyframes glitch-top {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-2px, -1px); }
+    40%  { transform: translate(-3px, 1px); }
+    60%  { transform: translate(2px, 0); }
+    80%  { transform: translate(1px, -2px); }
+    100% { transform: translate(0, 0); }
+}
+@keyframes glitch-bot {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(2px, 1px); }
+    40%  { transform: translate(3px, -1px); }
+    60%  { transform: translate(-2px, 0); }
+    80%  { transform: translate(-1px, 2px); }
+    100% { transform: translate(0, 0); }
+}
+
+/* ====== CYBER CARD ====== */
 .cyber-card {
-    background-color: var(--bg-card);
+    background:
+        linear-gradient(135deg, rgba(0,255,65,0.02) 0%, transparent 40%),
+        var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 0;
     padding: 1.5rem;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
+    position: relative;
+    clip-path: polygon(
+        0 12px, 12px 0,
+        calc(100% - 12px) 0, 100% 12px,
+        100% calc(100% - 12px), calc(100% - 12px) 100%,
+        12px 100%, 0 calc(100% - 12px)
+    );
+}
+.cyber-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+    opacity: 0.7;
 }
 .cyber-card:hover {
     background-color: var(--bg-card-hover);
-    border-color: rgba(0, 255, 136, 0.3);
+    border-color: var(--neon-green);
+    box-shadow:
+        0 0 18px rgba(0,255,65,0.25),
+        inset 0 0 24px rgba(0,255,65,0.04);
+    transform: translateY(-2px);
 }
 .cyber-card-top-accent {
     border-top: 2px solid var(--neon-green);
+    box-shadow: 0 -8px 14px -10px rgba(0,255,65,0.6);
 }
 
+/* corner brackets */
+.cyber-card .corner {
+    position: absolute; width: 14px; height: 14px;
+    border: 1px solid var(--neon-green);
+}
+.cyber-card .corner.tl { top: 4px; left: 4px; border-right: 0; border-bottom: 0; }
+.cyber-card .corner.tr { top: 4px; right: 4px; border-left: 0; border-bottom: 0; }
+.cyber-card .corner.bl { bottom: 4px; left: 4px; border-right: 0; border-top: 0; }
+.cyber-card .corner.br { bottom: 4px; right: 4px; border-left: 0; border-top: 0; }
+
+/* ====== PILL ====== */
 .pill {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 4px 12px; border-radius: 9999px;
-    border: 1px solid rgba(0, 255, 136, 0.3);
-    font-family: 'Fira Code', monospace; font-size: 11px;
+    padding: 4px 12px; border-radius: 0;
+    border: 1px solid var(--neon-green);
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
     color: var(--neon-green); text-transform: uppercase;
+    background: rgba(0,255,65,0.04);
+    box-shadow: 0 0 10px rgba(0,255,65,0.18), inset 0 0 8px rgba(0,255,65,0.05);
 }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
-
-.btn-primary {
-    background: var(--neon-green); color: #000;
-    padding: 10px 20px; border-radius: 6px; font-weight: 600;
-    font-family: 'Fira Code', monospace; text-decoration: none; display: inline-block;
-    border: none; cursor: pointer; font-size: 13px;
+.dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--neon-green);
+    box-shadow: 0 0 10px var(--neon-green), 0 0 22px var(--neon-green);
+    animation: pulse-dot 1.4s ease-in-out infinite;
 }
-.btn-outline {
-    background: transparent; color: var(--neon-cyan);
-    padding: 10px 20px; border-radius: 6px; font-weight: 500;
-    font-family: 'Fira Code', monospace; text-decoration: none; display: inline-block;
-    border: 1px solid var(--neon-cyan); cursor: pointer; font-size: 13px;
+@keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
 }
 
+/* ====== ANIMATED HERO LINK BUTTONS ====== */
+a[href="#submission-portal"], a[href="#workflow"] {
+    background: transparent !important;
+    color: var(--neon-green) !important;
+    border: 1px solid var(--neon-green) !important;
+    padding: 12px 22px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-weight: bold !important;
+    text-decoration: none !important;
+    border-radius: 0 !important;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 12px rgba(0,255,65,0.2), inset 0 0 12px rgba(0,255,65,0.05);
+}
+a[href="#submission-portal"] {
+    background: var(--neon-green) !important;
+    color: #000 !important;
+    box-shadow: 0 0 18px rgba(0,255,65,0.55) !important;
+}
+a[href="#submission-portal"]:hover, a[href="#workflow"]:hover {
+    background: var(--neon-cyan) !important;
+    color: #000 !important;
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 22px rgba(0,229,255,0.7) !important;
+}
+
+/* ====== TIMELINE ====== */
 .timeline-container { position: relative; padding-left: 3rem; margin-top: 2rem; }
 .timeline-line {
     position: absolute; left: 11px; top: 0; bottom: 0; width: 2px;
-    background: linear-gradient(to bottom, var(--neon-green) 0%, var(--border-color) 100%);
+    background: linear-gradient(to bottom,
+        var(--neon-green) 0%,
+        var(--neon-cyan) 50%,
+        var(--border-color) 100%);
+    box-shadow: 0 0 8px var(--neon-green);
 }
 .timeline-item { position: relative; margin-bottom: 1.5rem; }
 .timeline-dot {
-    position: absolute; left: -3rem; top: 1.5rem; width: 10px; height: 10px;
-    border-radius: 50%; background: var(--bg-main); border: 2px solid var(--neon-green);
+    position: absolute; left: -3rem; top: 1.5rem; width: 12px; height: 12px;
+    background: var(--bg-main); border: 2px solid var(--neon-green);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--neon-green);
 }
 .timeline-dot.active {
-    background: var(--neon-cyan); border-color: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);
+    background: var(--neon-cyan); border-color: var(--neon-cyan);
+    box-shadow: 0 0 14px var(--neon-cyan), 0 0 28px var(--neon-cyan);
+    animation: pulse-dot 1.2s infinite;
 }
 
-/* Streamlit Native Input Styling Overrides */
-div[data-testid="stFileUploader"] { background-color: transparent !important; }
+/* ====== STREAMLIT WIDGETS OVERRIDE ====== */
+div[data-testid="stFileUploader"] {
+    background-color: transparent !important;
+}
 div[data-testid="stFileUploader"] > section {
+    background:
+        repeating-linear-gradient(45deg,
+            rgba(0,255,65,0.02) 0px,
+            rgba(0,255,65,0.02) 6px,
+            transparent 6px,
+            transparent 12px) !important;
     background-color: var(--bg-card) !important;
-    border: 1px dashed rgba(0, 255, 136, 0.4) !important;
-    border-radius: 8px !important;
+    border: 1px dashed var(--neon-green) !important;
+    border-radius: 0 !important;
     padding: 2rem !important;
+    color: var(--neon-green) !important;
+    transition: all 0.2s ease;
 }
-div[data-testid="stFileUploader"] > section:hover { border-color: var(--neon-green) !important; }
-.stButton > button {
-    width: 100%; background: transparent !important; border: 1px solid var(--neon-green) !important;
-    color: var(--neon-green) !important; font-family: 'Fira Code', monospace !important; font-size: 13px !important;
+div[data-testid="stFileUploader"] > section:hover {
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 16px rgba(0,255,65,0.3) inset, 0 0 12px rgba(0,255,65,0.25);
 }
-.stButton > button:hover { background: var(--neon-green) !important; color: #000 !important; }
+div[data-testid="stFileUploader"] section button {
+    background: transparent !important;
+    border: 1px solid var(--neon-green) !important;
+    color: var(--neon-green) !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    border-radius: 0 !important;
+}
 
-/* === DOWNLOAD HANDBOOK (mirrors .btn-outline) === */
+div[data-testid="stFileUploader"] small,
+div[data-testid="stFileUploader"] span,
+div[data-testid="stFileUploader"] p {
+    color: var(--text-muted) !important;
+}
+
+/* Submit Buttons */
+.stButton > button {
+    width: 100%;
+    background: transparent !important;
+    border: 1px solid var(--neon-green) !important;
+    color: var(--neon-green) !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 14px !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+    border-radius: 0 !important;
+    padding: 12px 0 !important;
+    box-shadow: 0 0 10px rgba(0,255,65,0.15) inset, 0 0 8px rgba(0,255,65,0.15);
+    transition: all 0.2s ease;
+    position: relative;
+}
+.stButton > button::before {
+    content: "> ";
+}
+.stButton > button:hover {
+    background: var(--neon-green) !important;
+    color: #000 !important;
+    box-shadow: 0 0 22px rgba(0,255,65,0.75) !important;
+    transform: translateY(-1px);
+}
+.stButton > button:active {
+    transform: translateY(0);
+    box-shadow: 0 0 30px rgba(0,255,65,0.9) !important;
+}
+
+/* Download handbook */
 div[data-testid="stDownloadButton"] > button {
     width: auto !important;
     background: transparent !important;
     color: var(--neon-cyan) !important;
-    padding: 10px 20px !important;
-    border-radius: 6px !important;
-    font-weight: 500 !important;
-    font-family: 'Fira Code', monospace !important;
+    padding: 12px 24px !important;
+    border-radius: 0 !important;
+    font-weight: bold !important;
+    font-family: 'Share Tech Mono', monospace !important;
     text-decoration: none !important;
     border: 1px solid var(--neon-cyan) !important;
     cursor: pointer !important;
-    font-size: 13px !important;
-    letter-spacing: normal !important;
-    text-transform: none !important;
+    font-size: 14px !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+    box-shadow: 0 0 12px rgba(0,229,255,0.25) inset, 0 0 10px rgba(0,229,255,0.2);
+}
+div[data-testid="stDownloadButton"] > button::before {
+    content: "[↓] ";
 }
 div[data-testid="stDownloadButton"] > button:hover {
     background: var(--neon-cyan) !important;
     color: #000 !important;
+    box-shadow: 0 0 22px rgba(0,229,255,0.7) !important;
 }
 
-input {
-    background-color: var(--bg-card) !important;
+/* Text inputs */
+div[data-testid="stTextInput"] label {
     color: var(--neon-green) !important;
-    border: 1px solid var(--border-color) !important;
-    font-family: 'Fira Code', monospace !important;
-    border-radius: 4px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 12px !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+}
+div[data-testid="stTextInput"] label::before { content: "> "; color: var(--neon-cyan); }
+
+input {
+    background-color: #000 !important;
+    color: var(--neon-green) !important;
+    border: 1px solid var(--neon-green) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    border-radius: 0 !important;
+    caret-color: var(--neon-green) !important;
+    box-shadow: 0 0 8px rgba(0,255,65,0.2) inset;
+}
+input::placeholder {
+    color: var(--text-muted) !important;
+    font-style: italic;
 }
 input:focus {
     border-color: var(--neon-cyan) !important;
-    box-shadow: 0 0 8px rgba(0, 229, 255, 0.2) !important;
+    box-shadow: 0 0 12px rgba(0,229,255,0.4), 0 0 8px rgba(0,229,255,0.2) inset !important;
+    outline: none !important;
 }
 
-/* === TERMINAL TYPEWRITER EFFECT === */
+/* Streamlit alerts -> terminal */
+div[data-testid="stAlert"] {
+    border-radius: 0 !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    border-left: 4px solid var(--neon-green) !important;
+}
+div[data-baseweb="notification"] { border-radius: 0 !important; }
+
+/* Spinner restyle */
+.stSpinner > div > div {
+    border-color: var(--neon-green) transparent var(--neon-green) transparent !important;
+}
+
+/* ====== TERMINAL TYPEWRITER EFFECT ====== */
 .tw-text {
     display: inline-block;
     overflow: hidden;
     white-space: nowrap;
     vertical-align: bottom;
-    border-right: 8px solid var(--neon-cyan);
-    animation: 
-        typing-delete 12s steps(14, end) infinite, 
-        blink-cursor 0.8s step-end infinite;
+    border-right: 10px solid var(--neon-cyan);
+    animation:
+        typing-delete 12s steps(14, end) infinite,
+        blink-cursor 0.7s step-end infinite;
     height: 1.3em;
     line-height: 1.3em;
     margin-left: 8px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 8px var(--neon-cyan);
 }
-
 .tw-text::before {
     content: "NETWORKING";
     animation: tw-words 12s infinite;
 }
-
 @keyframes tw-words {
     0%, 33.3% { content: "NETWORKING"; }
     33.4%, 66.6% { content: "CYBERSECURITY"; }
     66.7%, 100% { content: "AI SECURITY"; }
 }
-
 @keyframes typing-delete {
     0%, 5% { width: 0; }
     15%, 25% { width: 14ch; }
     30%, 33.3% { width: 0; }
-    
     33.4%, 38% { width: 0; }
     48%, 58% { width: 14ch; }
     63%, 66.6% { width: 0; }
-    
     66.7%, 71% { width: 0; }
     81%, 91% { width: 14ch; }
     96%, 100% { width: 0; }
 }
-
 @keyframes blink-cursor {
     0%, 100% { border-right-color: var(--neon-cyan); }
     50% { border-right-color: transparent; }
 }
 
+/* ====== SECTION DIVIDER ====== */
+.divider-ascii {
+    text-align: center;
+    color: var(--neon-green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    margin: 3rem 0 2rem 0;
+    opacity: 0.85;
+    text-shadow: 0 0 8px rgba(0,255,65,0.45);
+}
+
+/* ====== HERO GRID ====== */
 .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
 @media (max-width: 1000px) { .hero-grid { grid-template-columns: 1fr; gap: 2rem; } }
+
+/* ====== TERMINAL WINDOW WRAPPER ====== */
+.term-window {
+    background: rgba(0, 10, 4, 0.7);
+    border: 1px solid var(--neon-green);
+    border-radius: 0;
+    padding: 0;
+    margin: 1rem 0;
+    box-shadow:
+        0 0 20px rgba(0,255,65,0.2),
+        inset 0 0 30px rgba(0,255,65,0.03);
+    backdrop-filter: blur(2px);
+}
+.term-header {
+    background: linear-gradient(180deg, #042010 0%, #000 100%);
+    border-bottom: 1px solid var(--neon-green);
+    padding: 6px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--neon-green);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.term-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.term-dot.red { background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); }
+.term-dot.amb { background: var(--neon-amber); box-shadow: 0 0 8px var(--neon-amber); }
+.term-dot.grn { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+.term-body { padding: 14px 18px; font-family: 'Share Tech Mono', monospace; }
+
+/* ====== TICKER ====== */
+.ticker-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(0,0,0,0.5);
+    margin: 1rem 0 2rem 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+}
+.ticker {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker-scroll 38s linear infinite;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--neon-green);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 6px rgba(0,255,65,0.5);
+}
+.ticker span { padding: 0 30px; }
+.ticker .sep { color: var(--neon-cyan); }
+@keyframes ticker-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ====== SECTION LABEL ====== */
+.section-label {
+    color: var(--neon-green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    text-shadow: 0 0 6px rgba(0,255,65,0.6);
+}
+.section-h2 {
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 2.6rem !important;
+    color: var(--text-main) !important;
+    text-shadow: 0 0 10px rgba(0,255,65,0.45);
+    letter-spacing: 0.05em;
+    margin: 0.4rem 0 0.8rem 0;
+}
+.section-h2 .accent {
+    color: var(--neon-green);
+}
+
+/* ====== LINKS ====== */
+a { color: var(--neon-cyan); text-decoration: none; }
+a:hover { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
+
+/* Hide Streamlit's deploy floater */
+.stDeployButton { display: none !important; }
+[data-testid="stToolbar"] { display: none !important; }
+
+/* ====== UPLOADED FILE NAME color fix ====== */
+div[data-testid="stFileUploader"] li {
+    background: rgba(0,255,65,0.06) !important;
+    color: var(--neon-green) !important;
+    border: 1px solid var(--neon-green) !important;
+    border-radius: 0 !important;
+    margin-top: 8px !important;
+}
+
+/* file uploader button text */
+div[data-testid="stFileUploader"] section button:hover {
+    background: var(--neon-green) !important;
+    color: #000 !important;
+}
+
+/* Number/percentage chips inside cards */
+.chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--neon-green);
+    color: var(--neon-green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    box-shadow: 0 0 8px rgba(0,255,65,0.2) inset;
+}
+.chip.cyan {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 8px rgba(0,229,255,0.2) inset;
+}
+
 </style>
+
+<!-- MATRIX RAIN CANVAS + STATUS BAR -->
+<canvas id="matrix-canvas"></canvas>
+<div class="status-bar">
+  <div class="left">
+    <span class="blink">●</span>
+    <span>root@aiscn26:~#</span>
+    <span>UPLINK::SECURE</span>
+    <span>TLS/1.3</span>
+  </div>
+  <div class="right">
+    <span id="clock">--:--:--</span>
+    <span class="blink">▮</span>
+    <span>COHORT::2026</span>
+  </div>
+</div>
+
+<script>
+// ============ MATRIX RAIN ============
+(function() {
+  const canvas = document.getElementById("matrix-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let w, h;
+  const chars = "01アァカサタナハマヤラワABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*<>?/\\|+=-_".split("");
+  let drops = [];
+  const fontSize = 14;
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    const cols = Math.floor(w / fontSize);
+    drops = new Array(cols).fill(1).map(() => Math.random() * h / fontSize);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function draw() {
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fillRect(0, 0, w, h);
+    ctx.font = fontSize + "px 'Share Tech Mono', monospace";
+    for (let i = 0; i < drops.length; i++) {
+      const text = chars[Math.floor(Math.random() * chars.length)];
+      const x = i * fontSize;
+      const y = drops[i] * fontSize;
+      // head glow
+      ctx.fillStyle = (Math.random() > 0.975) ? "#FFFFFF" : "#00FF41";
+      ctx.fillText(text, x, y);
+      if (y > h && Math.random() > 0.972) drops[i] = 0;
+      drops[i] += 1;
+    }
+  }
+  setInterval(draw, 55);
+
+  // ============ CLOCK ============
+  function tick() {
+    const el = document.getElementById("clock");
+    if (!el) return;
+    const d = new Date();
+    const pad = n => n < 10 ? "0" + n : n;
+    el.textContent = pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + ":" + pad(d.getUTCSeconds()) + " UTC";
+  }
+  setInterval(tick, 1000); tick();
+})();
+</script>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+# =========================
+# BOOT BANNER
+# =========================
+st.markdown("""
+<div class="boot-banner" style="margin-top:50px;">
+<span class="boot-line">[<span class="ok">  OK  </span>] Initializing AISCN'26 secure submission node ...</span>
+<span class="boot-line">[<span class="ok">  OK  </span>] Mounting /vault/projects on encrypted overlay ...</span>
+<span class="boot-line">[<span class="ok">  OK  </span>] Loading OWASP LLM Top-10 / MITRE ATLAS modules ...</span>
+<span class="boot-line">[<span class="ok">  OK  </span>] TLS-1.3 channel established :: cipher=AES_256_GCM</span>
+<span class="boot-line">[<span class="ok">  OK  </span>] Operator session granted :: role=intern :: tier=2026</span>
+<span class="boot-line">[<span class="warn">  ** </span>] WARNING: All activity logged. Unauthorized recon prohibited.</span>
+<span class="boot-line" style="color:var(--neon-cyan);">root@aiscn:~# launch --portal cohort-2026 --ui hacker_mode<span style="animation: blink-cursor 0.8s step-end infinite;">_</span></span>
+</div>
+""", unsafe_allow_html=True)
+
+# =========================
+# ASCII BANNER
+# =========================
+st.markdown("""
+<pre class="ascii-banner">
+   █████╗ ██╗███████╗ ██████╗███╗   ██╗   ██████╗  ██████╗
+  ██╔══██╗██║██╔════╝██╔════╝████╗  ██║   ╚════██╗██╔════╝
+  ███████║██║███████╗██║     ██╔██╗ ██║    █████╔╝███████╗
+  ██╔══██║██║╚════██║██║     ██║╚██╗██║   ██╔═══╝ ██╔═══██╗
+  ██║  ██║██║███████║╚██████╗██║ ╚████║   ███████╗╚██████╔╝
+  ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝╚═╝  ╚═══╝   ╚══════╝ ╚═════╝
+  ────────────────────────────────────────────────────────
+  &gt;&gt; AI · SECURITY · CYBER · NETWORKING — COHORT 2026 &lt;&lt;
+</pre>
+""", unsafe_allow_html=True)
+
+# =========================
+# TICKER
+# =========================
+st.markdown("""
+<div class="ticker-wrap">
+<div class="ticker">
+<span>● UPLINK STATUS: ONLINE</span><span class="sep">::</span>
+<span>● MP1 WINDOW: 21-28 JUN 2026</span><span class="sep">::</span>
+<span>● MP2 WINDOW: 05-12 JUL 2026</span><span class="sep">::</span>
+<span>● MAJOR PROJECT: 15-25 JUL 2026</span><span class="sep">::</span>
+<span>● EXPERT TALK: 19 JUL 2026</span><span class="sep">::</span>
+<span>● ETHICAL CONDUCT ENFORCED — IT ACT 2000 (IN)</span><span class="sep">::</span>
+<span>● UPLINK STATUS: ONLINE</span><span class="sep">::</span>
+<span>● MP1 WINDOW: 21-28 JUN 2026</span><span class="sep">::</span>
+<span>● MP2 WINDOW: 05-12 JUL 2026</span><span class="sep">::</span>
+<span>● MAJOR PROJECT: 15-25 JUL 2026</span><span class="sep">::</span>
+<span>● EXPERT TALK: 19 JUL 2026</span><span class="sep">::</span>
+<span>● ETHICAL CONDUCT ENFORCED — IT ACT 2000 (IN)</span><span class="sep">::</span>
+</div>
+</div>
+""", unsafe_allow_html=True)
 
 # =========================
 # 1. HERO SECTION
 # =========================
 st.markdown("""
-<div style="margin-top: 4rem; margin-bottom: 6rem;">
+<div style="margin-top: 1rem; margin-bottom: 5rem;">
 <div class="hero-grid">
 <div>
 <div class="pill" style="margin-bottom: 2rem;">
-<div class="dot"></div> SYSTEM // ONLINE · COHORT 2026
+<div class="dot"></div> SYSTEM // ONLINE · COHORT 2026 · UPLINK_OK
 </div>
-<h1 style="font-size: 4.5rem; margin: 0; line-height: 1; text-shadow: 0 0 20px rgba(0,255,136,0.2);">
-AISCN'<span class="text-neon">26</span>
-</h1>
+
+<h1 class="glitch" data-text="AISCN'26" style="font-size:6rem; margin:0; line-height:1;">AISCN'26</h1>
+
 <div class="mono text-cyan tracking-widest text-sm" style="margin-top: 1rem; margin-bottom: 1rem;">
-AI SECURITY • CYBERSECURITY • NETWORKING
+[ AI_SECURITY ] :: [ CYBERSECURITY ] :: [ NETWORKING ]
 </div>
 
 <div class="mono text-neon text-sm" style="margin-bottom: 2rem; display: flex; align-items: center; height: 1.5rem;">
-> _ <span class="tw-text"></span>
+&gt; ./scan --target <span class="tw-text"></span>
 </div>
 
-<h3 style="font-family: 'Inter', sans-serif !important; font-weight: 400; margin-bottom: 1rem;">
-"45-Day Immersive Internship Program"
+<h3 style="font-family: 'Share Tech Mono', monospace !important; font-weight: 400; margin-bottom: 1rem; color:var(--text-main);">
+&gt;_ "45-Day Immersive Internship Program"
 </h3>
-<div style="border-left: 2px solid var(--text-muted); padding-left: 1rem; margin-bottom: 2rem;">
-<p class="text-muted" style="line-height: 1.6; max-width: 90%;">
-Building the next generation of cybersecurity and AI security engineers through 
-structured learning, practical labs, industry projects and mentor guidance — a 
-curriculum that mirrors the actual threat landscape of 2026, from packet 
+<div style="border-left: 2px solid var(--neon-green); padding-left: 1rem; margin-bottom: 2rem; background: rgba(0,255,65,0.02);">
+<p class="text-muted" style="line-height: 1.7; max-width: 92%; font-family:'JetBrains Mono', monospace; font-size: 0.92rem;">
+Building the next generation of cybersecurity and AI security engineers through
+structured learning, practical labs, industry projects and mentor guidance — a
+curriculum that mirrors the actual threat landscape of 2026, from packet
 captures to prompt injections, from SOC consoles to agentic AI threat models.
 </p>
 </div>
-<div style="display: flex; gap: 1rem; margin-top: 2rem;">
-    <a href="#submission-portal" target="_top" style="display:inline-block; background:#00ffaa; color:#000; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; font-family:inherit; text-decoration:none; border-radius:4px;">ENTER SUBMISSION PORTAL →</a><a href="#workflow" target="_top" style="display:inline-block; background:transparent; color:#00ffaa; border:1px solid #00ffaa; padding:10px 20px; font-weight:bold; cursor:pointer; font-family:inherit; text-decoration:none; border-radius:4px;">VIEW WORKFLOW ↓</a>
+<div style="display: flex; gap: 1rem; margin-top: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+    <a href="#submission-portal" target="_top">[ENTER SUBMISSION PORTAL] &rarr;</a>
+    <a href="#workflow" target="_top">[VIEW WORKFLOW] &darr;</a>
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; font-family: 'Share Tech Mono', monospace; font-size: 12px; margin-top: 1.5rem;">
 <div><span class="text-neon">// CODE</span> <span class="text-muted">AISCN-2026-S1</span></div>
 <div><span class="text-neon">// MODE</span> <span class="text-muted">Online / Hybrid · Live</span></div>
 <div><span class="text-neon">// CORE LEAD</span> <span class="text-muted">Gaurav Jain · Ganesh Kanojiya</span></div>
 <div><span class="text-neon">// FACULTY</span> <span class="text-muted">Ganesh · Kanishka · Anant · Sahil</span></div>
 <div><span class="text-neon">// WINDOW</span> <span class="text-muted">14 Jun → 28 Jul 2026</span></div>
+<div><span class="text-neon">// PROTOCOL</span> <span class="text-muted">TLS-1.3 / AES-256-GCM</span></div>
 </div>
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding-top: 2rem;">
+
+<div>
+<div class="term-window">
+<div class="term-header">
+<span class="term-dot red"></span>
+<span class="term-dot amb"></span>
+<span class="term-dot grn"></span>
+<span style="margin-left:6px;">root@aiscn26:~/cohort2026 — bash — 80x24</span>
+</div>
+<div class="term-body" style="font-size: 13px; color: var(--neon-green);">
+<div>$ ./aiscn --cohort 2026 --mode=immersive --duration=45d</div>
+<div style="color:var(--text-muted);">› parsing manifest ............................. <span class="text-neon">[OK]</span></div>
+<div style="color:var(--text-muted);">› allocating mentor pool ....................... <span class="text-neon">[OK]</span></div>
+<div style="color:var(--text-muted);">› binding lab targets (THM/HTB/Juice/PicoGym) .. <span class="text-neon">[OK]</span></div>
+<div style="color:var(--text-muted);">› loading OWASP LLM Top-10 / MITRE ATLAS ....... <span class="text-neon">[OK]</span></div>
+<div style="color:var(--text-cyan);">› cohort launched. operator stand by ...</div>
+<div style="margin-top: 8px; color: var(--neon-cyan);">$ <span style="animation: blink-cursor 0.8s step-end infinite;">_</span></div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding-top: 1rem;">
 <div class="cyber-card cyber-card-top-accent">
-<div class="text-neon mono" style="font-size: 2.5rem; font-weight: bold; line-height: 1;">45</div>
-<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">DAYS</div>
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="text-neon mono" style="font-size: 2.7rem; font-weight: bold; line-height: 1;">45</div>
+<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">[ DAYS ]</div>
 <div class="text-xs text-muted">Days of Training</div>
 </div>
 <div class="cyber-card cyber-card-top-accent">
-<div class="text-neon mono" style="font-size: 2.5rem; font-weight: bold; line-height: 1;">10</div>
-<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">LIVE CLASSES</div>
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="text-neon mono" style="font-size: 2.7rem; font-weight: bold; line-height: 1;">10</div>
+<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">[ LIVE CLASSES ]</div>
 <div class="text-xs text-muted">90-120 min blocks</div>
 </div>
 <div class="cyber-card cyber-card-top-accent">
-<div class="text-neon mono" style="font-size: 2.5rem; font-weight: bold; line-height: 1;">2</div>
-<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">MINOR PROJECTS</div>
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="text-neon mono" style="font-size: 2.7rem; font-weight: bold; line-height: 1;">02</div>
+<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">[ MINOR PROJECTS ]</div>
 <div class="text-xs text-muted">MP1 · MP2</div>
 </div>
 <div class="cyber-card cyber-card-top-accent">
-<div class="text-neon mono" style="font-size: 2.5rem; font-weight: bold; line-height: 1;">1</div>
-<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">MAJOR PROJECT</div>
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="text-neon mono" style="font-size: 2.7rem; font-weight: bold; line-height: 1;">01</div>
+<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">[ MAJOR PROJECT ]</div>
 <div class="text-xs text-muted">Capstone · 40% weight</div>
 </div>
 <div class="cyber-card cyber-card-top-accent" style="grid-column: span 2;">
-<div class="text-neon mono" style="font-size: 2.5rem; font-weight: bold; line-height: 1;">1</div>
-<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">EXPERT TALK</div>
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="text-neon mono" style="font-size: 2.7rem; font-weight: bold; line-height: 1;">01</div>
+<div class="mono text-xs tracking-widest text-muted" style="margin-top: 0.5rem; margin-bottom: 0.2rem;">[ EXPERT TALK ]</div>
 <div class="text-xs text-muted">Industry practitioner · 19 Jul 2026</div>
+</div>
 </div>
 </div>
 </div>
 </div>
 """, unsafe_allow_html=True)
 
-# === FUNCTIONAL DOWNLOAD HANDBOOK BUTTON (styled as .btn-outline) ===
+# === FUNCTIONAL DOWNLOAD HANDBOOK BUTTON ===
 dl_col, _ = st.columns([1, 4])
 with dl_col:
     st.download_button(
-        label="DOWNLOAD HANDBOOK ↓",
+        label="DOWNLOAD HANDBOOK",
         data=load_handbook_bytes(),
         file_name="AISCN_Handbook_2026.pdf",
         mime="application/pdf",
         key="handbook_dl",
     )
+
+# Divider
+st.markdown('<div class="divider-ascii">▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰  /var/log/aiscn.log  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰</div>', unsafe_allow_html=True)
 
 # =========================
 # 2. WORKFLOW SECTION
@@ -462,171 +1071,205 @@ with dl_col:
 st.markdown('<div id="workflow"></div>', unsafe_allow_html=True)
 st.markdown("""
 <div style="text-align: center; margin-bottom: 3rem;">
-<div class="mono text-neon text-xs tracking-widest mb-2">// PROGRAM PIPELINE</div>
-<h2 style="font-size: 2.5rem; margin-top: 0.5rem;">AISCN-2026 Workflow</h2>
-<p class="text-muted text-sm">Sequential pipeline stages from onboarding through certification. Each node is a checkpoint in<br>the live program, mirroring the handbook timeline.</p>
+<div class="section-label">// PROGRAM_PIPELINE.SH</div>
+<h2 class="section-h2">&gt;_ AISCN-2026 <span class="accent">Workflow</span></h2>
+<p class="text-muted text-sm" style="font-family:'JetBrains Mono', monospace;">Sequential pipeline stages from onboarding through certification. Each node is a checkpoint in<br>the live program, mirroring the handbook timeline.</p>
 </div>
+
 <div style="max-width: 900px; margin: 0 auto 6rem auto;">
 <div class="timeline-container">
 <div class="timeline-line"></div>
+
 <div class="timeline-item">
 <div class="timeline-dot"></div>
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
 <span class="text-neon">[01] // STAGE</span> <span>// PRE_WEEK</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Onboarding</h3>
-<div class="text-muted text-sm">Discord induction, prerequisites & lab setup</div>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Onboarding</h3>
+<div class="text-muted text-sm">Discord induction, prerequisites &amp; lab setup</div>
 </div>
 </div>
+
 <div class="timeline-item">
 <div class="timeline-dot"></div>
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
 <span class="text-neon">[02] // STAGE</span> <span>// 14 JUN → 15 JUL</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Live Classes</h3>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Live Classes</h3>
 <div class="text-muted text-sm">10 live sessions · Sun + Wed · 90–120 min</div>
 </div>
 </div>
+
 <div class="timeline-item">
 <div class="timeline-dot"></div>
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
 <span class="text-neon">[03] // STAGE</span> <span>// CONTINUOUS</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Labs & Practice</h3>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Labs &amp; Practice</h3>
 <div class="text-muted text-sm">Bandit, Wireshark, TryHackMe, PortSwigger, Juice Shop, PicoGym</div>
 </div>
 </div>
+
 <div class="timeline-item">
 <div class="timeline-dot"></div>
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
 <span class="text-neon">[04] // STAGE</span> <span>// MENTORS</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Doubt Sessions</h3>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Doubt Sessions</h3>
 <div class="text-muted text-sm">Continuous mentor support — live + async on Discord</div>
 </div>
 </div>
+
 <div class="timeline-item">
 <div class="timeline-dot"></div>
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
 <span class="text-neon">[05] // STAGE</span> <span>// 21-28 JUN</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Minor Project 1</h3>
-<div class="text-muted text-sm">Network & Web Security Observation Report · 15% weight</div>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Minor Project 1</h3>
+<div class="text-muted text-sm">Network &amp; Web Security Observation Report · 15% weight</div>
 </div>
 </div>
+
 <div class="timeline-item">
 <div class="timeline-dot active"></div>
-<div class="cyber-card" style="border-color: rgba(0, 229, 255, 0.4);">
+<div class="cyber-card" style="border-color: var(--neon-cyan); box-shadow: 0 0 18px rgba(0,229,255,0.25), inset 0 0 30px rgba(0,229,255,0.04);">
+<span class="corner tl" style="border-color:var(--neon-cyan);"></span>
+<span class="corner tr" style="border-color:var(--neon-cyan);"></span>
+<span class="corner bl" style="border-color:var(--neon-cyan);"></span>
+<span class="corner br" style="border-color:var(--neon-cyan);"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
-<span class="text-neon">[06] // STAGE</span> <span>// 05-12 JUL</span>
+<span class="text-cyan">[06] // ACTIVE</span> <span>// 05-12 JUL</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Minor Project 2</h3>
-<div class="text-muted text-sm">Security Assessment & Pentesting Workflow Report · 20% weight</div>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Minor Project 2</h3>
+<div class="text-muted text-sm">Security Assessment &amp; Pentesting Workflow Report · 20% weight</div>
 </div>
 </div>
+
 <div class="timeline-item">
 <div class="timeline-dot"></div>
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
 <span class="text-neon">[07] // STAGE</span> <span>// 15-25 JUL</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Major Project</h3>
-<div class="text-muted text-sm">AI Security Risk Assessment & Secure AI Application Design · 40% weight</div>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Major Project</h3>
+<div class="text-muted text-sm">AI Security Risk Assessment &amp; Secure AI Application Design · 40% weight</div>
 </div>
 </div>
+
 <div class="timeline-item">
 <div class="timeline-dot"></div>
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" class="mono text-xs text-muted">
 <span class="text-cyan">[08] // EVENT</span> <span>// 19 JUL 2026</span>
 </div>
-<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">Expert Talk</h3>
-<div class="text-muted text-sm">"Cybersecurity & AI Security Careers in 2026 and Beyond"</div>
+<h3 style="margin: 0 0 0.2rem 0; font-size: 1.2rem;">&gt; Expert Talk</h3>
+<div class="text-muted text-sm">"Cybersecurity &amp; AI Security Careers in 2026 and Beyond"</div>
 </div>
 </div>
+
 </div>
 </div>
 """, unsafe_allow_html=True)
+
+# Divider
+st.markdown('<div class="divider-ascii">▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰  /etc/aiscn/projects.conf  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰</div>', unsafe_allow_html=True)
 
 # =========================
 # 3. ROADMAP & ASSESSMENT
 # =========================
 st.markdown("""
 <div style="text-align: center; margin-bottom: 3rem;">
-<div class="mono text-neon text-xs tracking-widest mb-2">// PORTFOLIO DELIVERABLES</div>
-<h2 style="font-size: 2.5rem; margin-top: 0.5rem;">Project Roadmap</h2>
-<p class="text-muted text-sm">Three progressive projects scale in difficulty and align with the curriculum — 2 minor reports<br>and 1 major capstone.</p>
+<div class="section-label">// PORTFOLIO_DELIVERABLES.MK</div>
+<h2 class="section-h2">&gt;_ Project <span class="accent">Roadmap</span></h2>
+<p class="text-muted text-sm" style="font-family:'JetBrains Mono', monospace;">Three progressive payloads scale in difficulty and align with the curriculum — 2 minor reports<br>and 1 major capstone.</p>
 </div>
+
 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem;">
+
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;" class="mono text-xs">
-<span style="border: 1px solid var(--neon-green); color: var(--neon-green); padding: 2px 6px; border-radius: 4px;">MINOR PROJECT 1</span>
-<span class="text-cyan">15% WEIGHT</span>
+<span class="chip">MINOR PROJECT 1</span>
+<span class="chip cyan">15% WEIGHT</span>
 </div>
-<h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">Network & Web Security<br>Observation Report</h4>
-<p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem;">Document how networking and web security concepts manifest in a real lab environment — Wireshark captures, Burp annotations, OWASP findings, personal reflection.</p>
+<h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">Network &amp; Web Security<br>Observation Report</h4>
+<p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem; font-family:'JetBrains Mono', monospace;">Document how networking and web security concepts manifest in a real lab environment — Wireshark captures, Burp annotations, OWASP findings, personal reflection.</p>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">ASSIGNED</div>
 <div class="mono text-neon text-sm">21 Jun 2026</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">REVIEW</div>
 <div class="mono text-neon text-sm">28 Jun 2026</div>
 </div>
 </div>
-<div class="mono text-muted" style="font-size: 10px;">PDF · ≤ 10 pages · MP1_&#60;Name&#62;_AISCN2026.pdf</div>
+<div class="mono text-muted" style="font-size: 10px;">PDF · ≤ 10 pages · MP1_&lt;Name&gt;_AISCN2026.pdf</div>
 </div>
+
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;" class="mono text-xs">
-<span style="border: 1px solid var(--neon-green); color: var(--neon-green); padding: 2px 6px; border-radius: 4px;">MINOR PROJECT 2</span>
-<span class="text-cyan">20% WEIGHT</span>
+<span class="chip">MINOR PROJECT 2</span>
+<span class="chip cyan">20% WEIGHT</span>
 </div>
-<h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">Security Assessment &<br>Pentesting Workflow Report</h4>
-<p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem;">Simulate a junior pentester's workflow on a legal, intentionally vulnerable lab target (TryHackMe / HTB free / Juice Shop) and produce a structured, professional security assessment.</p>
+<h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">Security Assessment &amp;<br>Pentesting Workflow Report</h4>
+<p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem; font-family:'JetBrains Mono', monospace;">Simulate a junior pentester's workflow on a legal, intentionally vulnerable lab target (TryHackMe / HTB free / Juice Shop) and produce a structured, professional security assessment.</p>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">ASSIGNED</div>
 <div class="mono text-neon text-sm">05 Jul 2026</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">REVIEW</div>
 <div class="mono text-neon text-sm">12 Jul 2026</div>
 </div>
 </div>
-<div class="mono text-muted" style="font-size: 10px;">PDF · ≤ 15 pages · MP2_&#60;Name&#62;_AISCN2026.pdf</div>
+<div class="mono text-muted" style="font-size: 10px;">PDF · ≤ 15 pages · MP2_&lt;Name&gt;_AISCN2026.pdf</div>
 </div>
+
 <div class="cyber-card">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;" class="mono text-xs">
-<span style="border: 1px solid var(--neon-green); color: var(--neon-green); padding: 2px 6px; border-radius: 4px;">MAJOR PROJECT</span>
-<span class="text-cyan">40% WEIGHT</span>
+<span class="chip">MAJOR PROJECT</span>
+<span class="chip cyan">40% WEIGHT</span>
 </div>
-<h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">AI Security Risk Assessment &<br>Secure AI Application Design</h4>
-<p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem;">Capstone deliverable — choose a hypothetical AI-powered application, conduct an AI security risk assessment (OWASP LLM Top 10 + MITRE ATLAS) and propose a secure design including agentic considerations.</p>
+<h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">AI Security Risk Assessment &amp;<br>Secure AI Application Design</h4>
+<p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem; font-family:'JetBrains Mono', monospace;">Capstone deliverable — choose a hypothetical AI-powered application, conduct an AI security risk assessment (OWASP LLM Top 10 + MITRE ATLAS) and propose a secure design including agentic considerations.</p>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">ASSIGNED</div>
 <div class="mono text-neon text-sm">15 Jul 2026</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">PRESENTATION</div>
 <div class="mono text-neon text-sm">26 Jul 2026</div>
 </div>
 </div>
-<div class="mono text-muted" style="font-size: 10px;">PDF 20-25 pages + PPT 8-12 slides · 10 min + 5 min Q&A</div>
+<div class="mono text-muted" style="font-size: 10px;">PDF 20-25 pages + PPT 8-12 slides · 10 min + 5 min Q&amp;A</div>
 </div>
+
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 6rem;">
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 4rem;">
 <div class="cyber-card">
-<div class="mono text-neon text-xs tracking-widest mb-2">// MARKING SCHEME</div>
-<h3 style="margin-bottom: 1.5rem; font-size: 1.3rem;">Assessment Structure</h3>
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="section-label">// MARKING_SCHEME</div>
+<h3 style="margin: 0.4rem 0 1.5rem 0; font-size: 1.3rem;">&gt; Assessment Structure</h3>
 <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);" class="text-sm">
-<span class="text-muted">Class Participation & Lab Engagement</span> <span class="mono text-neon">10%</span>
+<span class="text-muted">Class Participation &amp; Lab Engagement</span> <span class="mono text-neon">10%</span>
 </div>
 <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);" class="text-sm">
 <span class="text-muted">Minor Project 1</span> <span class="mono text-neon">15%</span>
@@ -644,12 +1287,14 @@ st.markdown("""
 <span class="text-muted">Expert Talk Reflection</span> <span class="mono text-neon">5%</span>
 </div>
 <div style="display: flex; justify-content: space-between; padding: 1rem 0 0 0; font-weight: bold;" class="text-sm">
-<span>TOTAL</span> <span class="mono text-neon">100%</span>
+<span class="text-cyan">[ TOTAL ]</span> <span class="mono text-neon">100%</span>
 </div>
 </div>
+
 <div class="cyber-card">
-<div class="mono text-neon text-xs tracking-widest mb-2">// COMPLETION CRITERIA</div>
-<h3 style="margin-bottom: 1.5rem; font-size: 1.3rem;">Certificate Eligibility</h3>
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="section-label">// COMPLETION_CRITERIA</div>
+<h3 style="margin: 0.4rem 0 1.5rem 0; font-size: 1.3rem;">&gt; Certificate Eligibility</h3>
 <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);" class="text-sm">
 <span class="text-muted">Minimum Class Attendance</span> <span class="mono text-neon">≥ 70%</span>
 </div>
@@ -666,19 +1311,19 @@ st.markdown("""
 <span class="text-muted">Code of Conduct</span> <span class="mono text-cyan">Strict adherence</span>
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">ISSUED</div>
 <div class="mono text-neon text-sm">Internship Completion</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 4px;">
-<div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">> 70%</div>
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,229,255,0.03);">
+<div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">&gt; 70%</div>
 <div class="mono text-cyan text-sm">Performance Letter</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,255,65,0.03);">
 <div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">TOP 10%</div>
 <div class="mono text-neon text-sm">Letter of Excellence</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 4px;">
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,229,255,0.03);">
 <div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">AWARD</div>
 <div class="mono text-cyan text-sm">Best Project (per category)</div>
 </div>
@@ -687,17 +1332,40 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Divider
+st.markdown('<div class="divider-ascii">▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰  /dev/uplink/submit  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰</div>', unsafe_allow_html=True)
+
 # =========================
 # 4. SUBMISSION PORTAL
 # =========================
 st.markdown('<div id="submission-portal"></div>', unsafe_allow_html=True)
-# OPERATOR IDENTITY SECTION
-st.markdown("""<div class="mono text-neon text-xs tracking-widest mb-2" style="max-width: 900px; margin: 0 auto;">// OPERATOR IDENTITY</div>""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="text-align:center; margin-bottom: 1.5rem;">
+<div class="section-label">// SECURE_UPLINK.PORTAL</div>
+<h2 class="section-h2">&gt;_ Submission <span class="accent">Portal</span></h2>
+<p class="text-muted text-sm" style="font-family:'JetBrains Mono', monospace;">All payloads encrypted in transit. Hash-logged. One uplink per operator per project.</p>
+</div>
+""", unsafe_allow_html=True)
+
+# OPERATOR IDENTITY
+st.markdown("""
+<div class="term-window" style="margin: 0 auto 1.2rem auto; max-width: 100%;">
+<div class="term-header">
+<span class="term-dot red"></span><span class="term-dot amb"></span><span class="term-dot grn"></span>
+<span style="margin-left:6px;">/usr/bin/auth — operator-identity --register</span>
+</div>
+<div class="term-body" style="padding:14px 18px;">
+<div class="mono text-neon text-xs tracking-widest">// OPERATOR IDENTITY :: AUTH REQUIRED</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
 id_col1, id_col2 = st.columns(2)
 with id_col1:
-    user_name = st.text_input("FULL NAME", placeholder="Enter your registered name", key="user_name")
+    user_name = st.text_input("FULL_NAME", placeholder="enter operator handle / registered name", key="user_name")
 with id_col2:
-    user_email = st.text_input("EMAIL ADDRESS", placeholder="Enter your registered email", key="user_email")
+    user_email = st.text_input("EMAIL_ADDR", placeholder="operator@registered.domain", key="user_email")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -705,65 +1373,76 @@ col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
     st.markdown("""
+<div class="cyber-card" style="margin-bottom:1rem;">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div class="mono text-xs text-muted" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-<span>MP // 01</span> <span class="text-neon">● READY</span>
+<span>PAYLOAD // MP1</span> <span class="text-neon">● READY</span>
 </div>
-<h3 style="margin:0 0 0.2rem 0;">MINOR PROJECT — 1</h3>
-<div class="text-xs text-muted" style="margin-bottom: 1.5rem;">PDF format only · Max 20 MB</div>
+<h3 style="margin:0 0 0.2rem 0;">&gt; MINOR PROJECT — 1</h3>
+<div class="text-xs text-muted" style="margin-bottom: 0.6rem;">PDF format only · Max 20 MB</div>
+<div class="text-xs text-cyan mono">$ scp ./MP1_&lt;Name&gt;.pdf vault@aiscn:/uplink</div>
+</div>
     """, unsafe_allow_html=True)
-    
+
     mp1_file = st.file_uploader("Upload MP1", type=["pdf"], label_visibility="collapsed", key="mp1")
-    # ── FIX: persist uploaded file across reruns ──
     if mp1_file is not None:
         st.session_state["mp1_file"] = mp1_file
-    if st.button("SUBMIT MP1", key="b1b", type="primary"):
+    if st.button("TRANSMIT MP1", key="b1b", type="primary"):
         handle_submission(user_name, user_email, st.session_state.get("mp1_file"), "MP1")
 
 with col2:
     st.markdown("""
+<div class="cyber-card" style="margin-bottom:1rem;">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div class="mono text-xs text-muted" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-<span>MP // 02</span> <span class="text-neon">● READY</span>
+<span>PAYLOAD // MP2</span> <span class="text-neon">● READY</span>
 </div>
-<h3 style="margin:0 0 0.2rem 0;">MINOR PROJECT — 2</h3>
-<div class="text-xs text-muted" style="margin-bottom: 1.5rem;">PDF format only · Max 20 MB</div>
+<h3 style="margin:0 0 0.2rem 0;">&gt; MINOR PROJECT — 2</h3>
+<div class="text-xs text-muted" style="margin-bottom: 0.6rem;">PDF format only · Max 20 MB</div>
+<div class="text-xs text-cyan mono">$ scp ./MP2_&lt;Name&gt;.pdf vault@aiscn:/uplink</div>
+</div>
     """, unsafe_allow_html=True)
-    
+
     mp2_file = st.file_uploader("Upload MP2", type=["pdf"], label_visibility="collapsed", key="mp2")
-    # ── FIX: persist uploaded file across reruns ──
     if mp2_file is not None:
         st.session_state["mp2_file"] = mp2_file
-    if st.button("SUBMIT MP2", key="b2b", type="primary"):
+    if st.button("TRANSMIT MP2", key="b2b", type="primary"):
         handle_submission(user_name, user_email, st.session_state.get("mp2_file"), "MP2")
 
 with col3:
     st.markdown("""
+<div class="cyber-card" style="margin-bottom:1rem;">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
 <div class="mono text-xs text-muted" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-<span>MJP // 01</span> <span class="text-neon">● READY</span>
+<span>PAYLOAD // MJP</span> <span class="text-neon">● READY</span>
 </div>
-<h3 style="margin:0 0 0.2rem 0;">MAJOR PROJECT</h3>
-<div class="text-xs text-muted" style="margin-bottom: 1.5rem;">PDF format only · Max 20 MB</div>
+<h3 style="margin:0 0 0.2rem 0;">&gt; MAJOR PROJECT</h3>
+<div class="text-xs text-muted" style="margin-bottom: 0.6rem;">PDF format only · Max 20 MB</div>
+<div class="text-xs text-cyan mono">$ scp ./MJP_&lt;Name&gt;.pdf vault@aiscn:/uplink</div>
+</div>
     """, unsafe_allow_html=True)
-    
+
     mjp_file = st.file_uploader("Upload MJP", type=["pdf"], label_visibility="collapsed", key="mjp")
-    # ── FIX: persist uploaded file across reruns ──
     if mjp_file is not None:
         st.session_state["mjp_file"] = mjp_file
-    if st.button("SUBMIT MJP", key="b3b", type="primary"):
+    if st.button("TRANSMIT MJP", key="b3b", type="primary"):
         handle_submission(user_name, user_email, st.session_state.get("mjp_file"), "MJP")
 
+# Divider
+st.markdown('<div class="divider-ascii">▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰  /etc/aiscn/personnel.lst  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰</div>', unsafe_allow_html=True)
 
 # =========================
 # 5. FOOTER PANELS
 # =========================
-st.markdown("<br><br>", unsafe_allow_html=True)
 f_col1, f_col2 = st.columns(2, gap="large")
 
 with f_col1:
     st.markdown("""
 <div class="cyber-card">
-<div class="mono text-neon text-xs tracking-widest mb-2">// OFFICE</div>
-<h3 style="margin-bottom: 1rem;">Program Office</h3>
-<div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; font-size: 0.85rem;" class="mono text-muted">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="section-label">// OFFICE</div>
+<h3 style="margin: 0.4rem 0 1rem 0;">&gt; Program Office</h3>
+<div style="display: grid; grid-template-columns: 160px 1fr; gap: 0.5rem; font-size: 0.9rem;" class="mono text-muted">
 <div>Program Director</div> <div class="text-neon">· AISCN-2026 Office</div>
 <div>Core Lead</div> <div class="text-neon">· Gaurav Jain · Ganesh Kanojiya</div>
 <div>Faculty Panel</div> <div>· Ganesh · Kanishka · Anant · Sahil</div>
@@ -776,9 +1455,10 @@ with f_col1:
 with f_col2:
     st.markdown("""
 <div class="cyber-card">
-<div class="mono text-neon text-xs tracking-widest mb-2">// MENTOR PANEL</div>
-<h3 style="margin-bottom: 1rem;">Faculty & Mentors</h3>
-<div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; font-size: 0.85rem;" class="mono text-muted">
+<span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="section-label">// MENTOR_PANEL</div>
+<h3 style="margin: 0.4rem 0 1rem 0;">&gt; Faculty &amp; Mentors</h3>
+<div style="display: grid; grid-template-columns: 160px 1fr; gap: 0.5rem; font-size: 0.9rem;" class="mono text-muted">
 <div class="text-cyan">Gaurav Jain</div> <div>— Linux, Pentesting, AI Security</div>
 <div class="text-cyan">Ganesh Kanojiya</div> <div>— Networking, SOC, AI Security</div>
 <div class="text-cyan">Kanishka Jain</div> <div>— Windows Security, SOC Ops</div>
@@ -788,18 +1468,40 @@ with f_col2:
 </div>
     """, unsafe_allow_html=True)
 
-# Final Copyright & Warning Footer
+# =========================
+# FINAL FOOTER
+# =========================
 st.markdown("""
 <div style="text-align: center; margin-top: 4rem; padding-bottom: 2rem;">
-<div class="mono text-neon text-sm tracking-widest" style="font-weight:bold;">AISCN'26 INTERNSHIP PROGRAM</div>
-<div class="mono text-muted text-xs tracking-widest" style="margin-top:0.3rem;">CORE TEAM SUBMISSION SYSTEM</div>
-<div class="mono text-muted text-xs" style="margin-top:1rem; opacity: 0.5;">
-<span style="color:var(--neon-green);">●</span> secure-channel://aiscn26.submissions
+
+<div style="font-family:'VT323', monospace; color:var(--neon-green); font-size: 22px; letter-spacing: 0.2em; text-shadow: 0 0 8px var(--neon-green);">
+&gt;&gt; AISCN'26 INTERNSHIP PROGRAM &lt;&lt;
 </div>
-<p class="text-muted text-xs" style="max-width: 600px; margin: 2rem auto 0 auto; line-height: 1.5; opacity: 0.6;">
-Stay ethical. All hands-on activities are restricted to legally authorized environments — TryHackMe, OverTheWire, Hack The Box, 
-OWASP Juice Shop, PicoGym. Application of any technique to unauthorized systems is strictly prohibited under the Information 
+<div class="mono text-muted text-xs tracking-widest" style="margin-top:0.5rem;">[ CORE TEAM SUBMISSION SYSTEM ]</div>
+
+<div class="mono text-xs" style="margin-top:1rem;">
+<span style="color:var(--neon-green); text-shadow:0 0 6px var(--neon-green);">●</span>
+<span class="text-cyan">secure-channel://aiscn26.submissions</span>
+<span style="color:var(--neon-green); text-shadow:0 0 6px var(--neon-green);">●</span>
+</div>
+
+<div style="display:flex; justify-content:center; gap:2rem; margin-top:1.5rem; font-family:'Share Tech Mono', monospace; font-size:11px; color:var(--text-muted); flex-wrap:wrap;">
+<span>HASH: SHA-256</span>
+<span>CIPHER: AES-256-GCM</span>
+<span>PROTOCOL: TLS-1.3</span>
+<span>UPTIME: 99.97%</span>
+<span>NODES: 7</span>
+</div>
+
+<p class="text-muted text-xs" style="max-width: 680px; margin: 2rem auto 0 auto; line-height: 1.6; opacity: 0.7; font-family:'JetBrains Mono', monospace;">
+[!] Stay ethical. All hands-on activities are restricted to legally authorized environments — TryHackMe, OverTheWire, Hack The Box,
+OWASP Juice Shop, PicoGym. Application of any technique to unauthorized systems is strictly prohibited under the Information
 Technology Act, 2000 (India).
 </p>
+
+<div style="margin-top: 2rem; font-family:'VT323', monospace; color: var(--neon-green); font-size: 16px;">
+root@aiscn:~# logout<span style="animation: blink-cursor 0.8s step-end infinite;">_</span>
+</div>
+
 </div>
 """, unsafe_allow_html=True)
