@@ -397,16 +397,22 @@ curriculum that mirrors the actual threat landscape of 2026, from packet
 captures to prompt injections, from SOC consoles to agentic AI threat models.
 </p>
 </div>
-<div style="display: flex; gap: 1rem; margin-bottom: 3rem; flex-wrap: wrap;">
-<a href="#submission-portal" target="_self" style="text-decoration: none;">
-    <button class="btn-primary">ENTER SUBMISSION PORTAL →</button>
-</a>
+<div style="display: flex; gap: 1rem; margin-top: 2rem;">
+    <!-- Button 1 -->
+    <a href="#submission-portal" target="_top" style="text-decoration: none;">
+        <button style="background-color: #00ffaa; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">
+            ENTER SUBMISSION PORTAL →
+        </button>
+    </a>
 
-<a href="#workflow" target="_self" style="text-decoration: none;">
-    <button class="btn-outline">VIEW WORKFLOW ↓</button>
-</a>
+    <!-- Button 2 -->
+    <a href="#workflow" target="_top" style="text-decoration: none;">
+        <button style="background-color: transparent; color: #00ffaa; border: 1px solid #00ffaa; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">
+            VIEW WORKFLOW ↓
+        </button>
+    </a>
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
+div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
 <div><span class="text-neon">// CODE</span> <span class="text-muted">AISCN-2026-S1</span></div>
 <div><span class="text-neon">// MODE</span> <span class="text-muted">Online / Hybrid · Live</span></div>
 <div><span class="text-neon">// CORE LEAD</span> <span class="text-muted">Gaurav Jain · Ganesh Kanojiya</span></div>
