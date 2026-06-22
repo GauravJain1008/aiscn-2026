@@ -398,8 +398,13 @@ captures to prompt injections, from SOC consoles to agentic AI threat models.
 </p>
 </div>
 <div style="display: flex; gap: 1rem; margin-bottom: 3rem; flex-wrap: wrap;">
-<button class="btn-primary">ENTER SUBMISSION PORTAL →</button>
-<button class="btn-outline">VIEW WORKFLOW ↓</button>
+<a href="#submission-portal" target="_self" style="text-decoration: none;">
+    <button class="btn-primary">ENTER SUBMISSION PORTAL →</button>
+</a>
+
+<a href="#workflow" target="_self" style="text-decoration: none;">
+    <button class="btn-outline">VIEW WORKFLOW ↓</button>
+</a>
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
 <div><span class="text-neon">// CODE</span> <span class="text-muted">AISCN-2026-S1</span></div>
