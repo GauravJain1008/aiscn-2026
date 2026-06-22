@@ -294,54 +294,238 @@ footer {visibility: hidden;}
     overflow-x: auto;
 }
 
-/* ====== GLITCH TITLE ====== */
-.glitch {
+/* ====== CYBER TITLE — BOLD, CLEAN, ONE-LINE ====== */
+.cyber-title {
     position: relative;
-    color: var(--neon-green);
-    font-family: 'Major Mono Display', 'Share Tech Mono', monospace !important;
-    font-size: 6rem;
+    display: inline-block;
+    font-family: 'Share Tech Mono', 'JetBrains Mono', monospace !important;
+    font-weight: 900;
+    font-size: 7rem;
     line-height: 1;
     letter-spacing: 0.04em;
+    white-space: nowrap;
+    color: #BFFFD0;
     text-shadow:
-        0 0 4px var(--neon-green),
-        0 0 14px rgba(0,255,65,0.55),
-        0 0 38px rgba(0,255,65,0.25);
-    display: inline-block;
+        0 0 2px #FFFFFF,
+        0 0 6px var(--neon-green),
+        0 0 16px var(--neon-green),
+        0 0 32px rgba(0,255,65,0.65),
+        0 0 56px rgba(0,255,65,0.35);
+    animation: title-glow 2.4s ease-in-out infinite alternate, title-decrypt 1.4s steps(8, end) 1;
+    padding: 0 8px;
 }
-.glitch::before, .glitch::after {
-    content: attr(data-text);
+.cyber-title .pct { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan), 0 0 24px rgba(0,229,255,0.6); }
+.cyber-title::after {
+    /* sweeping scan beam */
+    content: "";
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0; left: -120%;
+    width: 30%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,255,65,0.18) 50%, transparent 100%);
+    pointer-events: none;
+    animation: title-scan 4.5s linear infinite;
+    mix-blend-mode: screen;
+}
+@keyframes title-glow {
+    0%   { text-shadow: 0 0 2px #FFFFFF, 0 0 6px var(--neon-green), 0 0 14px var(--neon-green), 0 0 28px rgba(0,255,65,0.55), 0 0 50px rgba(0,255,65,0.25); }
+    100% { text-shadow: 0 0 2px #FFFFFF, 0 0 8px var(--neon-green), 0 0 22px var(--neon-green), 0 0 44px rgba(0,255,65,0.75), 0 0 72px rgba(0,255,65,0.45); }
+}
+@keyframes title-scan {
+    0%   { left: -40%; }
+    100% { left: 130%; }
+}
+@keyframes title-decrypt {
+    0%   { filter: blur(8px) brightness(0.6); opacity: 0; letter-spacing: 0.4em; }
+    40%  { filter: blur(2px) brightness(1.4); opacity: 0.7; }
+    100% { filter: blur(0) brightness(1); opacity: 1; letter-spacing: 0.04em; }
+}
+
+/* ====== DECRYPT TERMINAL LINE (above title) ====== */
+.decrypt-line {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--neon-green);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.6rem;
+    display: flex; gap: 10px; align-items: center;
+    animation: fadeup 0.9s ease-out both;
+}
+.decrypt-tag { color: var(--neon-cyan); text-shadow: 0 0 6px var(--neon-cyan); }
+.decrypt-text {
+    overflow: hidden; white-space: nowrap;
+    border-right: 8px solid var(--neon-green);
+    animation: typing-once 1.4s steps(28, end) 1 both, caret-blink 0.7s step-end infinite;
+    max-width: 0; padding-right: 2px;
+}
+.decrypt-ok {
+    color: #000; background: var(--neon-green);
+    padding: 1px 8px; font-weight: bold;
+    box-shadow: 0 0 8px var(--neon-green);
+    opacity: 0; animation: pop-in 0.3s 1.4s ease-out forwards;
+}
+@keyframes typing-once {
+    0%   { max-width: 0; }
+    100% { max-width: 32ch; }
+}
+@keyframes caret-blink {
+    0%, 100% { border-right-color: var(--neon-green); }
+    50% { border-right-color: transparent; }
+}
+@keyframes pop-in {
+    0%   { opacity: 0; transform: scale(0.5); }
+    60%  { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+}
+@keyframes fadeup {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== BUTTON SHIMMER SWEEP ON HOVER ====== */
+.stButton > button {
+    position: relative;
     overflow: hidden;
 }
-.glitch::before {
-    color: var(--neon-cyan);
-    text-shadow: 2px 0 var(--neon-cyan);
-    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
-    animation: glitch-top 3.4s infinite linear alternate-reverse;
+.stButton > button::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,255,65,0.55) 50%, transparent 100%);
+    transition: left 0.6s ease;
+    pointer-events: none;
 }
-.glitch::after {
-    color: var(--neon-magenta);
-    text-shadow: -2px 0 var(--neon-magenta);
-    clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
-    animation: glitch-bot 2.7s infinite linear alternate-reverse;
+.stButton > button:hover::after { left: 130%; }
+
+/* download button shimmer */
+div[data-testid="stDownloadButton"] > button {
+    position: relative;
+    overflow: hidden;
 }
-@keyframes glitch-top {
-    0%   { transform: translate(0, 0); }
-    20%  { transform: translate(-2px, -1px); }
-    40%  { transform: translate(-3px, 1px); }
-    60%  { transform: translate(2px, 0); }
-    80%  { transform: translate(1px, -2px); }
-    100% { transform: translate(0, 0); }
+div[data-testid="stDownloadButton"] > button::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,229,255,0.55) 50%, transparent 100%);
+    transition: left 0.6s ease;
+    pointer-events: none;
 }
-@keyframes glitch-bot {
-    0%   { transform: translate(0, 0); }
-    20%  { transform: translate(2px, 1px); }
-    40%  { transform: translate(3px, -1px); }
-    60%  { transform: translate(-2px, 0); }
-    80%  { transform: translate(-1px, 2px); }
-    100% { transform: translate(0, 0); }
+div[data-testid="stDownloadButton"] > button:hover::after { left: 130%; }
+
+/* hero CTA buttons get the sweep too */
+a[href="#submission-portal"], a[href="#workflow"] {
+    position: relative;
+    overflow: hidden;
+}
+a[href="#submission-portal"]::after, a[href="#workflow"]::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+    transition: left 0.55s ease;
+    pointer-events: none;
+}
+a[href="#submission-portal"]:hover::after, a[href="#workflow"]:hover::after { left: 130%; }
+
+/* ====== CYBER CARD: scan-line sweep on hover ====== */
+.cyber-card { overflow: hidden; }
+.cyber-card::after {
+    content: "";
+    position: absolute;
+    top: -100%; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,255,65,0.08) 50%, transparent 100%);
+    transition: top 0.7s ease;
+    pointer-events: none;
+}
+.cyber-card:hover::after { top: 100%; }
+
+/* ====== INPUT FOCUS: expanding glow ring ====== */
+input {
+    transition: border-color 0.18s ease, box-shadow 0.25s ease, background-color 0.18s ease;
+}
+input:focus {
+    background-color: #001508 !important;
+    box-shadow:
+        0 0 0 1px var(--neon-cyan),
+        0 0 14px rgba(0,229,255,0.55),
+        0 0 28px rgba(0,229,255,0.25),
+        inset 0 0 10px rgba(0,229,255,0.18) !important;
+}
+
+/* ====== SMOOTH SCROLL ====== */
+html { scroll-behavior: smooth; }
+
+/* ====== LINK HOVER GROW UNDERLINE ====== */
+a:not([href^="#"]) {
+    position: relative;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+a:not([href^="#"])::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -2px;
+    width: 0; height: 1px;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 6px var(--neon-cyan);
+    transition: width 0.3s ease;
+}
+a:not([href^="#"]):hover::after { width: 100%; }
+
+/* ====== TICKER FASTER + PULSE ====== */
+.ticker-wrap { border-color: var(--neon-green); box-shadow: inset 0 0 16px rgba(0,255,65,0.08); }
+
+/* ====== ACCESS GRANTED FLASH on hero load ====== */
+.access-flash {
+    display: inline-block;
+    padding: 3px 10px;
+    color: #000; background: var(--neon-green);
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    margin-bottom: 14px;
+    box-shadow: 0 0 16px var(--neon-green);
+    animation: access-pulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes access-pulse {
+    0%   { box-shadow: 0 0 10px var(--neon-green); }
+    100% { box-shadow: 0 0 22px var(--neon-green), 0 0 44px rgba(0,255,65,0.4); }
+}
+
+/* ====== BOOT BANNER lines stagger in ====== */
+.boot-banner .boot-line {
+    opacity: 0;
+    animation: boot-in 0.28s ease-out forwards;
+}
+.boot-banner .boot-line:nth-child(1) { animation-delay: 0.05s; }
+.boot-banner .boot-line:nth-child(2) { animation-delay: 0.25s; }
+.boot-banner .boot-line:nth-child(3) { animation-delay: 0.45s; }
+.boot-banner .boot-line:nth-child(4) { animation-delay: 0.65s; }
+.boot-banner .boot-line:nth-child(5) { animation-delay: 0.85s; }
+.boot-banner .boot-line:nth-child(6) { animation-delay: 1.05s; }
+.boot-banner .boot-line:nth-child(7) { animation-delay: 1.30s; }
+@keyframes boot-in {
+    0%   { opacity: 0; transform: translateX(-6px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+/* ====== FILE UPLOADER smooth hover ====== */
+div[data-testid="stFileUploader"] > section {
+    transition: border-color 0.2s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+div[data-testid="stFileUploader"] > section:hover {
+    transform: translateY(-1px);
+}
+
+/* ====== PILL pulse ====== */
+.pill {
+    animation: pill-pulse 2.6s ease-in-out infinite alternate;
+}
+@keyframes pill-pulse {
+    0%   { box-shadow: 0 0 8px rgba(0,255,65,0.18), inset 0 0 6px rgba(0,255,65,0.05); }
+    100% { box-shadow: 0 0 18px rgba(0,255,65,0.45), inset 0 0 12px rgba(0,255,65,0.10); }
 }
 
 /* ====== CYBER CARD ====== */
@@ -856,11 +1040,19 @@ st.markdown("""
 <div style="margin-top: 1rem; margin-bottom: 5rem;">
 <div class="hero-grid">
 <div>
-<div class="pill" style="margin-bottom: 2rem;">
+<div class="pill" style="margin-bottom: 1.4rem;">
 <div class="dot"></div> SYSTEM // ONLINE · COHORT 2026 · UPLINK_OK
 </div>
 
-<h1 class="glitch" data-text="AISCN'26" style="font-size:6rem; margin:0; line-height:1;">AISCN'26</h1>
+<div class="access-flash">&gt;&gt; ACCESS GRANTED &lt;&lt;</div>
+
+<div class="decrypt-line">
+  <span class="decrypt-tag">[DECRYPT]</span>
+  <span class="decrypt-text">cohort_2026.dat &rarr; AISCN_26</span>
+  <span class="decrypt-ok">[OK]</span>
+</div>
+
+<h1 class="cyber-title" style="margin:0;">AISCN<span class="pct">'26</span></h1>
 
 <div class="mono text-cyan tracking-widest text-sm" style="margin-top: 1rem; margin-bottom: 1rem;">
 [ AI_SECURITY ] :: [ CYBERSECURITY ] :: [ NETWORKING ]
