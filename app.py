@@ -697,13 +697,12 @@ st.markdown("""
 # =========================
 st.markdown("""
 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-<a href="#submission-portal" target="_top" style="text-decoration: none;">
-<button style="background-color: #00ffaa; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">ENTER SUBMISSION PORTAL →</button>
-</a>
-<a href="#workflow" target="_top" style="text-decoration: none;">
-<button style="background-color: transparent; color: #00ffaa; border: 1px solid #00ffaa; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">VIEW WORKFLOW ↓</button>
-</a>
+    <button style="background-color: #00ffaa; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer;">ENTER SUBMISSION PORTAL →</button>
+    <button style="background-color: transparent; color: #00ffaa; border: 1px solid #00ffaa; padding: 10px 20px; font-weight: bold; cursor: pointer;">VIEW WORKFLOW ↓</button>
 </div>
+
+<!-- Niche wali line ka missing bracket fix kar diya hai -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'Fira Code', monospace; font-size: 11px;">
 """, unsafe_allow_html=True)
 # OPERATOR IDENTITY SECTION
 st.markdown("""<div class="mono text-neon text-xs tracking-widest mb-2" style="max-width: 900px; margin: 0 auto;">// OPERATOR IDENTITY</div>""", unsafe_allow_html=True)
