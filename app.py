@@ -696,16 +696,15 @@ st.markdown("""
 # 4. SUBMISSION PORTAL
 # =========================
 st.markdown("""
-<div style="text-align: center; margin-bottom: 3rem;">
-<h2 style="font-size: 2rem; color: var(--text-muted);">>_ Project Submission Portal</h2>
-<div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem;">
-<div style="height: 1px; width: 100px; background: var(--border-color);"></div>
-<span class="mono text-muted text-xs tracking-widest">SESSION INITIALIZED</span>
-<div style="height: 1px; width: 100px; background: var(--border-color);"></div>
-</div>
+<div style="display: flex; gap: 1rem; margin-top: 2rem;">
+<a href="#submission-portal" target="_top" style="text-decoration: none;">
+<button style="background-color: #00ffaa; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">ENTER SUBMISSION PORTAL →</button>
+</a>
+<a href="#workflow" target="_top" style="text-decoration: none;">
+<button style="background-color: transparent; color: #00ffaa; border: 1px solid #00ffaa; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit;">VIEW WORKFLOW ↓</button>
+</a>
 </div>
 """, unsafe_allow_html=True)
-
 # OPERATOR IDENTITY SECTION
 st.markdown("""<div class="mono text-neon text-xs tracking-widest mb-2" style="max-width: 900px; margin: 0 auto;">// OPERATOR IDENTITY</div>""", unsafe_allow_html=True)
 id_col1, id_col2 = st.columns(2)
