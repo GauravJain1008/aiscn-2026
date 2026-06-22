@@ -27,21 +27,39 @@ st.set_page_config(
 # BACKEND LOGIC & HELPERS
 # =========================
 DB_FILE = "submission_registry.json"
-HANDBOOK_PATH = "/home/parrot/AISCN_2026_Handbook.pdf"
 SUBMISSION_LIMIT = 3
+
+# Search order: alongside app.py first (works locally + on Streamlit Cloud deploys),
+# then the original /home/parrot location, then current working directory.
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+HANDBOOK_CANDIDATES = [
+    os.path.join(_APP_DIR, "AISCN_2026_Handbook.pdf"),
+    "/home/parrot/AISCN_2026_Handbook.pdf",
+    os.path.join(os.getcwd(), "AISCN_2026_Handbook.pdf"),
+]
+
+def resolve_handbook_path() -> str | None:
+    for p in HANDBOOK_CANDIDATES:
+        if p and os.path.exists(p) and os.path.getsize(p) > 0:
+            return p
+    return None
+
+# Back-compat constant in case anything else references it.
+HANDBOOK_PATH = resolve_handbook_path() or HANDBOOK_CANDIDATES[0]
 
 @st.cache_data(show_spinner=False)
 def _read_handbook_bytes(path: str, mtime: float, size: int) -> bytes:
-    """Cache keyed by mtime+size so an updated file invalidates automatically."""
+    """Cache keyed on (path, mtime, size) so any file change invalidates automatically."""
     with open(path, "rb") as f:
         return f.read()
 
 def load_handbook_bytes() -> bytes:
-    """Loads the AISCN handbook PDF from /home/parrot for the download button."""
-    if not os.path.exists(HANDBOOK_PATH):
+    """Loads the AISCN handbook PDF for the download button. Empty bytes if not found."""
+    path = resolve_handbook_path()
+    if not path:
         return b""
-    stat = os.stat(HANDBOOK_PATH)
-    return _read_handbook_bytes(HANDBOOK_PATH, stat.st_mtime, stat.st_size)
+    stat = os.stat(path)
+    return _read_handbook_bytes(path, stat.st_mtime, stat.st_size)
 
 def is_blocked(email: str) -> bool:
     """Strict global limit: block once total submissions for an email reach SUBMISSION_LIMIT."""
@@ -1328,13 +1346,26 @@ captures to prompt injections, from SOC consoles to agentic AI threat models.
 # === FUNCTIONAL DOWNLOAD HANDBOOK BUTTON ===
 dl_col, _ = st.columns([1, 4])
 with dl_col:
-    st.download_button(
-        label="DOWNLOAD HANDBOOK",
-        data=load_handbook_bytes(),
-        file_name="AISCN_Handbook_2026.pdf",
-        mime="application/pdf",
-        key="handbook_dl",
-    )
+    _hb_bytes = load_handbook_bytes()
+    if _hb_bytes:
+        st.download_button(
+            label="DOWNLOAD HANDBOOK",
+            data=_hb_bytes,
+            file_name="AISCN_Handbook_2026.pdf",
+            mime="application/pdf",
+            key="handbook_dl",
+        )
+    else:
+        # Defensive: cache is stale OR file genuinely missing — bust the cache and tell the user.
+        st.cache_data.clear()
+        st.markdown(
+            f'<div class="mono text-cyan text-xs" style="padding:10px; '
+            f'background:rgba(255,176,0,0.06); border:1px solid var(--neon-amber); border-radius:0;">'
+            f'&gt;&gt; WARN: HANDBOOK PAYLOAD NOT FOUND ON NODE. '
+            f'place <code>AISCN_2026_Handbook.pdf</code> alongside app.py and reload.'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 # Divider
 st.markdown('<div class="divider-ascii">▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰  /var/log/aiscn.log  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰</div>', unsafe_allow_html=True)
