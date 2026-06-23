@@ -29,8 +29,14 @@ st.set_page_config(
 DB_FILE = "submission_registry.json"
 SUBMISSION_LIMIT = 3
 
-# Search order: alongside app.py first (works locally + on Streamlit Cloud deploys),
-# then the original /home/parrot location, then current working directory.
+# Resolution order:
+#   1. PDF alongside app.py (works locally AND on Streamlit Cloud once the file is git-committed)
+#   2. PDF in /home/parrot/ (your local dev machine)
+#   3. PDF in process cwd
+#   4. Any AISCN_2026_Handbook*.pdf found inside the app dir (filename variants)
+#   5. Remote URL from st.secrets["handbook_url"] (recommended for Streamlit Cloud
+#      if you don't want to commit a 16 MB binary to git — host it on a GitHub Release
+#      or a Google Drive public direct link and set the secret to that URL)
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 HANDBOOK_CANDIDATES = [
     os.path.join(_APP_DIR, "AISCN_2026_Handbook.pdf"),
@@ -38,28 +44,75 @@ HANDBOOK_CANDIDATES = [
     os.path.join(os.getcwd(), "AISCN_2026_Handbook.pdf"),
 ]
 
-def resolve_handbook_path() -> str | None:
+def _scan_app_dir_for_handbook() -> str | None:
+    try:
+        for fname in os.listdir(_APP_DIR):
+            low = fname.lower()
+            if low.endswith(".pdf") and "aiscn" in low and "handbook" in low:
+                full = os.path.join(_APP_DIR, fname)
+                if os.path.getsize(full) > 0:
+                    return full
+    except OSError:
+        pass
+    return None
+
+def resolve_handbook_path() -> "str | None":
     for p in HANDBOOK_CANDIDATES:
         if p and os.path.exists(p) and os.path.getsize(p) > 0:
             return p
-    return None
+    return _scan_app_dir_for_handbook()
 
-# Back-compat constant in case anything else references it.
+# Back-compat constant
 HANDBOOK_PATH = resolve_handbook_path() or HANDBOOK_CANDIDATES[0]
 
 @st.cache_data(show_spinner=False)
-def _read_handbook_bytes(path: str, mtime: float, size: int) -> bytes:
-    """Cache keyed on (path, mtime, size) so any file change invalidates automatically."""
+def _read_handbook_local(path: str, mtime: float, size: int) -> bytes:
+    """Local-file cache keyed on (path, mtime, size) so any file change invalidates."""
     with open(path, "rb") as f:
         return f.read()
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def _fetch_handbook_remote(url: str) -> bytes:
+    """Remote-URL cache. TTL keeps it warm for an hour."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "AISCN26-Portal/1.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read()
+
 def load_handbook_bytes() -> bytes:
-    """Loads the AISCN handbook PDF for the download button. Empty bytes if not found."""
+    """Loads the AISCN handbook PDF. Empty bytes if neither local file nor URL works."""
+    # 1. Try local file
     path = resolve_handbook_path()
-    if not path:
-        return b""
-    stat = os.stat(path)
-    return _read_handbook_bytes(path, stat.st_mtime, stat.st_size)
+    if path:
+        stat = os.stat(path)
+        return _read_handbook_local(path, stat.st_mtime, stat.st_size)
+    # 2. Try remote URL from secrets
+    try:
+        url = st.secrets.get("handbook_url")  # type: ignore[attr-defined]
+    except Exception:
+        url = None
+    if url:
+        try:
+            data = _fetch_handbook_remote(url)
+            if data:
+                return data
+        except Exception:
+            return b""
+    return b""
+
+def handbook_diagnostics() -> dict:
+    """For the failure banner — shows exactly what was tried so the user can see why."""
+    rows = []
+    for p in HANDBOOK_CANDIDATES:
+        rows.append({"path": p, "exists": os.path.exists(p),
+                     "size": os.path.getsize(p) if os.path.exists(p) else 0})
+    scan = _scan_app_dir_for_handbook()
+    try:
+        has_url = bool(st.secrets.get("handbook_url"))  # type: ignore[attr-defined]
+    except Exception:
+        has_url = False
+    return {"candidates": rows, "scan_hit": scan, "url_secret_set": has_url,
+            "app_dir": _APP_DIR, "cwd": os.getcwd()}
 
 def is_blocked(email: str) -> bool:
     """Strict global limit: block once total submissions for an email reach SUBMISSION_LIMIT."""
@@ -1356,13 +1409,40 @@ with dl_col:
             key="handbook_dl",
         )
     else:
-        # Defensive: cache is stale OR file genuinely missing — bust the cache and tell the user.
         st.cache_data.clear()
+        _diag = handbook_diagnostics()
+        rows_html = "".join(
+            f'<div style="font-family:JetBrains Mono,monospace; font-size:11px;">'
+            f'<span style="color:{"#00FF41" if r["exists"] else "#FF003C"};">'
+            f'{"[ FOUND ]" if r["exists"] else "[ MISSING ]"}</span> '
+            f'<span style="color:#7D8590;">{r["path"]}</span>'
+            f'{" — "+str(r["size"])+" bytes" if r["exists"] else ""}'
+            f'</div>'
+            for r in _diag["candidates"]
+        )
         st.markdown(
-            f'<div class="mono text-cyan text-xs" style="padding:10px; '
-            f'background:rgba(255,176,0,0.06); border:1px solid var(--neon-amber); border-radius:0;">'
-            f'&gt;&gt; WARN: HANDBOOK PAYLOAD NOT FOUND ON NODE. '
-            f'place <code>AISCN_2026_Handbook.pdf</code> alongside app.py and reload.'
+            f'<div class="mono" style="padding:14px; '
+            f'background:rgba(255,176,0,0.06); border:1px solid var(--neon-amber); border-radius:0; '
+            f'color:#FFB000; font-size:12px;">'
+            f'<div style="font-weight:bold; letter-spacing:0.15em; margin-bottom:8px;">'
+            f'&gt;&gt; WARN :: HANDBOOK PAYLOAD UNAVAILABLE ON THIS NODE</div>'
+            f'<div style="margin-bottom:10px;">paths checked:</div>'
+            f'{rows_html}'
+            f'<div style="margin-top:8px; font-size:11px;">scan hit: '
+            f'<span style="color:{"#00FF41" if _diag["scan_hit"] else "#FF003C"};">'
+            f'{_diag["scan_hit"] or "none"}</span></div>'
+            f'<div style="font-size:11px;">handbook_url secret set: '
+            f'<span style="color:{"#00FF41" if _diag["url_secret_set"] else "#FF003C"};">'
+            f'{"yes" if _diag["url_secret_set"] else "no"}</span></div>'
+            f'<div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,176,0,0.4); '
+            f'color:#E6EDF3; font-size:11px; line-height:1.6;">'
+            f'<strong style="color:#00E5FF;">To fix on Streamlit Cloud:</strong><br>'
+            f'<strong>Option A —</strong> commit the PDF to your repo:<br>'
+            f'<code style="color:#00FF41;">git add AISCN_2026_Handbook.pdf &amp;&amp; git commit -m "add handbook" &amp;&amp; git push</code><br>'
+            f'<strong>Option B —</strong> host the PDF (GitHub Release, Drive direct link, S3) and add to '
+            f'<code>.streamlit/secrets.toml</code>:<br>'
+            f'<code style="color:#00FF41;">handbook_url = "https://your.host/AISCN_2026_Handbook.pdf"</code>'
+            f'</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
