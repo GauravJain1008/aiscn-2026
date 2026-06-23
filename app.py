@@ -277,14 +277,18 @@ footer {visibility: hidden;}
 
 /* ====== ASCII BANNER ====== */
 .ascii-banner {
-    font-family: 'VT323', 'Share Tech Mono', monospace;
+    /* needs a font that actually has U+2588 (FULL BLOCK) and box-drawing glyphs */
+    font-family: ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas',
+                 'DejaVu Sans Mono', 'Liberation Mono', 'Courier New', monospace;
     color: var(--neon-green);
     white-space: pre;
     line-height: 1.0;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 700;
     margin: 1rem 0;
     overflow-x: auto;
-    opacity: 0.85;
+    opacity: 0.9;
+    letter-spacing: 0;
 }
 
 /* ====== CYBER TITLE — BOLD, CLEAN, ONE-LINE ====== */
@@ -1035,14 +1039,18 @@ div[data-testid="stFileUploader"] section button:hover {
 }
 .boot-logo {
     color: var(--neon-green);
-    font-family: 'VT323', monospace;
-    font-size: 13px;
+    /* same font-stack with proper block-glyph support */
+    font-family: ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas',
+                 'DejaVu Sans Mono', 'Liberation Mono', 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 700;
     line-height: 1.0;
     white-space: pre;
     margin-bottom: 18px;
     opacity: 0;
     animation: fadeup 0.45s ease-out 0.05s 1 forwards;
     text-shadow: 0 0 4px rgba(63,211,122,0.4);
+    letter-spacing: 0;
 }
 .boot-tag {
     font-size: 14px;
