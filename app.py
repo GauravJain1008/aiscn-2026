@@ -990,9 +990,416 @@ div[data-testid="stFileUploader"] section button:hover {
     color: var(--neon-red);
 }
 
+/* ═════════════════════════════════════════════════════════════════════
+   PREMIUM HACKER LAYER — boot overlay, ambient hex streams, hover-only
+   glitch, deeper 3D, animated borders, staggered reveals, micro-interactions
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* ====== BIOS / OS BOOT OVERLAY ====== */
+.boot-overlay {
+    position: fixed; inset: 0;
+    z-index: 99999;
+    background:
+        radial-gradient(ellipse at center, #0A140E 0%, #000 75%),
+        #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: boot-overlay-out 4.6s ease-in 1 forwards;
+}
+.boot-overlay::before {
+    /* CRT scanline texture on boot overlay */
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(63,211,122,0.04) 0px,
+        rgba(63,211,122,0.04) 1px,
+        transparent 1px, transparent 3px);
+    pointer-events: none;
+    animation: boot-flicker 0.18s steps(2) infinite;
+}
+@keyframes boot-flicker {
+    50% { opacity: 0.88; }
+}
+@keyframes boot-overlay-out {
+    0%, 78% { opacity: 1; visibility: visible; pointer-events: all; }
+    100%    { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+.boot-content {
+    max-width: 760px; width: 100%;
+    position: relative;
+    font-family: 'VT323', 'Share Tech Mono', monospace;
+    color: var(--neon-green);
+}
+.boot-logo {
+    color: var(--neon-green);
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    line-height: 1.0;
+    white-space: pre;
+    margin-bottom: 18px;
+    opacity: 0;
+    animation: fadeup 0.45s ease-out 0.05s 1 forwards;
+    text-shadow: 0 0 4px rgba(63,211,122,0.4);
+}
+.boot-tag {
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    opacity: 0;
+    animation: fadeup 0.4s ease-out 0.5s 1 forwards;
+}
+.boot-tag .red { color: var(--neon-red); }
+.boot-bios-line {
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--text-main);
+    opacity: 0;
+    transform: translateX(-6px);
+    animation: boot-line-in 0.22s ease-out 1 forwards;
+    white-space: pre-wrap;
+}
+.boot-bios-line .ok    { color: var(--neon-green); }
+.boot-bios-line .warn  { color: var(--neon-amber); }
+.boot-bios-line .err   { color: var(--neon-red); }
+.boot-bios-line .dim   { color: var(--text-muted); }
+.boot-bios-line:nth-child(3)  { animation-delay: 0.70s; }
+.boot-bios-line:nth-child(4)  { animation-delay: 0.85s; }
+.boot-bios-line:nth-child(5)  { animation-delay: 1.00s; }
+.boot-bios-line:nth-child(6)  { animation-delay: 1.15s; }
+.boot-bios-line:nth-child(7)  { animation-delay: 1.30s; }
+.boot-bios-line:nth-child(8)  { animation-delay: 1.45s; }
+.boot-bios-line:nth-child(9)  { animation-delay: 1.60s; }
+.boot-bios-line:nth-child(10) { animation-delay: 1.75s; }
+.boot-bios-line:nth-child(11) { animation-delay: 1.90s; }
+.boot-bios-line:nth-child(12) { animation-delay: 2.05s; }
+.boot-bios-line:nth-child(13) { animation-delay: 2.20s; }
+.boot-bios-line:nth-child(14) { animation-delay: 2.35s; }
+@keyframes boot-line-in {
+    100% { opacity: 1; transform: translateX(0); }
+}
+.boot-bar {
+    margin-top: 18px;
+    height: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(63,211,122,0.04);
+    opacity: 0;
+    animation: fadeup 0.3s ease-out 2.55s 1 forwards;
+    position: relative; overflow: hidden;
+}
+.boot-bar-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--neon-green), var(--neon-red));
+    box-shadow: 0 0 8px rgba(63,211,122,0.5);
+    animation: boot-bar-fill 1.3s ease-out 2.6s 1 forwards;
+}
+@keyframes boot-bar-fill {
+    100% { width: 100%; }
+}
+.boot-granted {
+    margin-top: 22px;
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 28px;
+    letter-spacing: 0.4em;
+    color: var(--neon-green);
+    opacity: 0;
+    transform: scale(0.85);
+    animation: granted-pop 0.5s cubic-bezier(0.16,1,0.3,1) 3.7s 1 forwards;
+    text-shadow:
+        0 0 4px var(--neon-green),
+        0 0 18px rgba(63,211,122,0.55);
+}
+.boot-granted .bracket { color: var(--neon-red); }
+@keyframes granted-pop {
+    0%   { opacity: 0; transform: scale(0.8); letter-spacing: 0.6em; }
+    60%  { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); letter-spacing: 0.4em; }
+}
+
+/* ====== AMBIENT BACKGROUND HEX STREAMS (left + right edges) ====== */
+.bg-hex {
+    position: fixed;
+    top: 0;
+    width: 92px;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.08;
+    font-family: 'JetBrains Mono', 'Share Tech Mono', monospace;
+    font-size: 11px;
+    line-height: 1.65;
+    color: var(--neon-green);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+}
+.bg-hex.left  { left: 0; padding-left: 10px; }
+.bg-hex.right { right: 0; padding-right: 10px; text-align: right; color: var(--neon-red); }
+.bg-hex .stream {
+    animation: hex-scroll 90s linear infinite;
+    white-space: pre;
+}
+.bg-hex.right .stream { animation-duration: 110s; animation-direction: reverse; }
+@keyframes hex-scroll {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+}
+
+/* ====== HERO TITLE — HOVER-ONLY GLITCH ====== */
+.cyber-title { cursor: default; }
+.cyber-title:hover {
+    animation: title-hover-glitch 0.45s steps(8, end) 1;
+}
+@keyframes title-hover-glitch {
+    0%, 100% {
+        transform: translate(0);
+        text-shadow:
+            0 0 1px rgba(255,255,255,0.6),
+            0 0 4px var(--neon-green),
+            0 0 12px rgba(63,211,122,0.35);
+    }
+    15% {
+        transform: translate(-2px, 0);
+        text-shadow:
+            -2px 0 var(--neon-red),
+            2px 0 var(--neon-cyan),
+            0 0 8px var(--neon-green);
+    }
+    30% { transform: translate(2px, 1px); }
+    45% {
+        transform: translate(-1px, -1px);
+        text-shadow:
+            2px 0 var(--neon-red),
+            -2px 0 var(--neon-cyan);
+    }
+    60% { transform: translate(1px, 0); }
+    75% { transform: translate(-1px, 1px); }
+}
+
+/* ====== DEEPER 3D CARDS — layered shadow + animated border ====== */
+.cyber-card {
+    position: relative;
+    transition:
+        transform 0.55s cubic-bezier(0.16,1,0.3,1),
+        border-color 0.35s ease,
+        box-shadow 0.55s ease,
+        background-color 0.35s ease;
+}
+.cyber-card:hover {
+    transform: perspective(1200px) rotateX(2deg) rotateY(-2deg) translateY(-3px) translateZ(6px);
+    box-shadow:
+        0 22px 40px -18px rgba(0,0,0,0.85),
+        0 8px 18px -10px rgba(0,0,0,0.6),
+        0 0 18px -2px rgba(63,211,122,0.22),
+        inset 0 0 22px rgba(63,211,122,0.04);
+}
+.cyber-card:nth-child(2n):hover {
+    transform: perspective(1200px) rotateX(2deg) rotateY(2deg) translateY(-3px) translateZ(6px);
+    box-shadow:
+        0 22px 40px -18px rgba(0,0,0,0.85),
+        0 8px 18px -10px rgba(0,0,0,0.6),
+        0 0 18px -2px rgba(232,72,85,0.22),
+        inset 0 0 22px rgba(232,72,85,0.04);
+}
+/* animated border highlight that travels around card on hover */
+.cyber-card::after {
+    background: linear-gradient(180deg, transparent 0%, rgba(63,211,122,0.10) 50%, transparent 100%);
+}
+.cyber-card:hover::after { top: 100%; transition-duration: 0.85s; }
+
+/* ====== SECTION REVEAL ON FIRST LOAD (staggered) ====== */
+.term-window, .cyber-card, .ticker-wrap, .boot-banner,
+.timeline-item, .ascii-banner, .divider-ascii {
+    animation: reveal-up 0.7s cubic-bezier(0.16,1,0.3,1) 1 both;
+}
+.term-window         { animation-delay: 0.05s; }
+.boot-banner         { animation-delay: 0.10s; }
+.ascii-banner        { animation-delay: 0.15s; }
+.ticker-wrap         { animation-delay: 0.20s; }
+.cyber-card          { animation-delay: 0.25s; }
+.cyber-card:nth-of-type(2) { animation-delay: 0.32s; }
+.cyber-card:nth-of-type(3) { animation-delay: 0.39s; }
+.cyber-card:nth-of-type(4) { animation-delay: 0.46s; }
+.cyber-card:nth-of-type(5) { animation-delay: 0.53s; }
+.timeline-item       { animation-delay: 0.30s; }
+.timeline-item:nth-of-type(2) { animation-delay: 0.36s; }
+.timeline-item:nth-of-type(3) { animation-delay: 0.42s; }
+.timeline-item:nth-of-type(4) { animation-delay: 0.48s; }
+.timeline-item:nth-of-type(5) { animation-delay: 0.54s; }
+.timeline-item:nth-of-type(6) { animation-delay: 0.60s; }
+.timeline-item:nth-of-type(7) { animation-delay: 0.66s; }
+.timeline-item:nth-of-type(8) { animation-delay: 0.72s; }
+@keyframes reveal-up {
+    0%   { opacity: 0; transform: translateY(14px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== BUTTON CLICK RIPPLE / MICRO-INTERACTION ====== */
+.stButton > button { transition-duration: 0.25s !important; }
+.stButton > button:hover {
+    border-color: var(--neon-red) !important;
+    color: var(--neon-red) !important;
+    background: rgba(232,72,85,0.04) !important;
+    text-shadow: 0 0 6px rgba(232,72,85,0.35);
+    transform: translateY(-2px) translateZ(0) !important;
+    box-shadow:
+        0 8px 16px -8px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(232,72,85,0.25) inset !important;
+}
+
+/* ====== TERMINAL WINDOW — neon edge on hover, deeper depth ====== */
+.term-window {
+    border-top: 1px solid var(--neon-green);
+    box-shadow: 0 4px 14px -8px rgba(0,0,0,0.65);
+}
+.term-window:hover {
+    border-top-color: var(--neon-red);
+    box-shadow:
+        0 18px 36px -16px rgba(0,0,0,0.85),
+        0 0 14px -4px rgba(232,72,85,0.18) !important;
+}
+
+/* ====== HEX/SYS FLOATING STATUS WIDGET (bottom-right) ====== */
+.sys-stat {
+    position: fixed;
+    right: 14px; bottom: 14px;
+    z-index: 50;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    background: rgba(8,16,12,0.85);
+    border: 1px solid var(--border-color);
+    border-left: 2px solid var(--neon-green);
+    padding: 8px 12px;
+    pointer-events: none;
+    user-select: none;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    letter-spacing: 0.05em;
+    min-width: 200px;
+    opacity: 0;
+    animation: fadeup 0.6s ease-out 4.8s 1 forwards;
+}
+.sys-stat .label { color: var(--neon-green); }
+.sys-stat .val   { color: var(--text-main); }
+.sys-stat .bar {
+    display: inline-block; width: 56px; height: 6px;
+    background: rgba(63,211,122,0.1); margin-left: 4px;
+    vertical-align: middle; border: 1px solid var(--border-color);
+}
+.sys-stat .bar > i {
+    display: block; height: 100%;
+    background: var(--neon-green);
+}
+.sys-stat .bar.warn > i { background: var(--neon-amber); }
+.sys-stat .bar.crit > i { background: var(--neon-red); }
+.sys-stat .red { color: var(--neon-red); }
+
+/* ====== STAGGER HOVER on stat-cards in hero ====== */
+.cyber-card-top-accent:hover {
+    background-color: var(--bg-card-hover);
+}
+
+/* ====== HERO CTA: animated bottom underline on hover ====== */
+a[href="#submission-portal"]::before,
+a[href="#workflow"]::before {
+    content: "";
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 0; height: 2px;
+    background: var(--neon-red);
+    transition: width 0.35s ease;
+}
+a[href="#submission-portal"]:hover::before,
+a[href="#workflow"]:hover::before {
+    width: 100%;
+}
+
+/* ====== SUBTLE FLOATING LATTICE on .stApp (gives deep ambient motion) ====== */
+@keyframes lattice-drift {
+    0%   { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+    100% { background-position: 0 -640px, -640px 0, 0 0, 0 0, 0 0; }
+}
+.stApp { animation: lattice-drift 60s linear infinite; }
+
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+# ─── Ambient background: hex streams on left + right edges ─────────────
+_HEX_LINES_LEFT = (
+    "7F:00:E1:34  88:A2:0F:9B  4C:DE:1A:77  2B:0C:5E:A1  E3:67:DF:0E  "
+    "9A:11:3C:55  61:EE:4F:80  CC:78:A3:1B  D5:09:F2:6E  3E:84:B0:7C  "
+    "1F:5A:CD:48  72:91:E7:33  AF:6D:22:5B  04:F8:9A:E1  56:1B:73:CE  "
+    "8D:30:4E:F9  B7:6C:8A:21  29:F4:55:0D  6F:81:B2:97  C0:3A:DE:64  "
+)
+_HEX_LINES_RIGHT = (
+    "DEADBEEF  CAFEBABE  FEEDFACE  0BADF00D  BAADF00D  DEADC0DE  "
+    "ABAD1DEA  FACEFEED  C0FFEE42  1337C0DE  B16B00B5  D15EA5ED  "
+    "BAADCAFE  CAFEDEAD  DEADBABE  FEEDBABE  C0DEDEAD  D15C0DE5  "
+    "FEEDDEAD  BABEBEEF  DEADBEAD  C0DEBABE  FEEDC0DE  BABEC0DE  "
+)
+def _hex_block(seed: str, count: int = 96) -> str:
+    chars = seed.split()
+    return "\n".join(chars[i % len(chars)] for i in range(count))
+_left_block  = _hex_block(_HEX_LINES_LEFT, 96)
+_right_block = _hex_block(_HEX_LINES_RIGHT, 96)
+st.markdown(
+    f"""
+    <div class="bg-hex left"><div class="stream">{_left_block}\n{_left_block}</div></div>
+    <div class="bg-hex right"><div class="stream">{_right_block}\n{_right_block}</div></div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ─── BIOS / OS boot overlay — plays ONCE per browser session ───────────
+if "boot_played" not in st.session_state:
+    st.session_state.boot_played = True
+    st.markdown("""
+<div class="boot-overlay">
+  <div class="boot-content">
+    <pre class="boot-logo">
+   █████╗ ██╗███████╗ ██████╗███╗   ██╗      ██████╗  ██████╗
+  ██╔══██╗██║██╔════╝██╔════╝████╗  ██║      ╚════██╗██╔════╝
+  ███████║██║███████╗██║     ██╔██╗ ██║       █████╔╝███████╗
+  ██╔══██║██║╚════██║██║     ██║╚██╗██║      ██╔═══╝ ██╔═══██╗
+  ██║  ██║██║███████║╚██████╗██║ ╚████║      ███████╗╚██████╔╝
+  ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝╚═╝  ╚═══╝      ╚══════╝ ╚═════╝
+    </pre>
+    <div class="boot-tag"><span class="red">::</span> CYBERCORE BIOS v2.6.1 — (c) 2026 AISCN SYSTEMS <span class="red">::</span></div>
+    <div class="boot-bios-line"><span class="dim">POST</span> :: memory test 16384MB ............................. [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">DISK</span> :: /dev/sda1 ext4 ro ................................ [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">DISK</span> :: /vault luks-aes256-xts ............................ [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">MODS</span> :: cryptd aesni-intel netfilter iptables ............. [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">NET </span> :: eth0 up · ip=10.0.0.42 · mtu=1500 ................. [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">NET </span> :: tor circuit established (3 hops) ................. [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">SVC </span> :: NetworkManager · fail2ban · ufw ................... [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">PROBE</span> :: anonymous_recon_attempt :: connection refused .... [<span class="err">FAIL</span>]</div>
+    <div class="boot-bios-line"><span class="dim">AUTH</span> :: HMAC-SHA512 token validation ..................... [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">CERT</span> :: rootCA=AISCN-2026 · fingerprint verified .......... [<span class="ok"> OK </span>]</div>
+    <div class="boot-bios-line"><span class="dim">LOAD</span> :: aiscn26-portal · ui=hacker_mode ................... [<span class="ok"> OK </span>]</div>
+    <div class="boot-bar"><div class="boot-bar-fill"></div></div>
+    <div class="boot-granted"><span class="bracket">&gt;&gt;</span> ACCESS GRANTED <span class="bracket">&lt;&lt;</span></div>
+  </div>
+</div>
+    """, unsafe_allow_html=True)
+
+# ─── Floating system-status widget (bottom-right corner) ───────────────
+st.markdown("""
+<div class="sys-stat">
+  <div><span class="label">CPU</span> <span class="val">37%</span> <span class="bar"><i style="width:37%"></i></span></div>
+  <div><span class="label">MEM</span> <span class="val">8.2G / 16G</span> <span class="bar warn"><i style="width:51%"></i></span></div>
+  <div><span class="label">NET</span> <span class="val">&darr; 2.4M  &uarr; 0.8M</span></div>
+  <div><span class="label">TOR</span> <span class="val">3 hops</span> · <span class="red">ENC</span></div>
+  <div><span class="label">UPLINK</span> <span class="val">aiscn-vault-04</span></div>
+</div>
+""", unsafe_allow_html=True)
 
 # Status bar — rendered with server-side UTC clock (refreshes on each Streamlit rerun)
 _utc_now = datetime.utcnow().strftime("%H:%M:%S")
