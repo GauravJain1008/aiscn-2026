@@ -29,91 +29,6 @@ st.set_page_config(
 DB_FILE = "submission_registry.json"
 SUBMISSION_LIMIT = 3
 
-# Resolution order:
-#   1. PDF alongside app.py (works locally AND on Streamlit Cloud once the file is git-committed)
-#   2. PDF in /home/parrot/ (your local dev machine)
-#   3. PDF in process cwd
-#   4. Any AISCN_2026_Handbook*.pdf found inside the app dir (filename variants)
-#   5. Remote URL from st.secrets["handbook_url"] (recommended for Streamlit Cloud
-#      if you don't want to commit a 16 MB binary to git — host it on a GitHub Release
-#      or a Google Drive public direct link and set the secret to that URL)
-_APP_DIR = os.path.dirname(os.path.abspath(__file__))
-HANDBOOK_CANDIDATES = [
-    os.path.join(_APP_DIR, "AISCN_2026_Handbook.pdf"),
-    "/home/parrot/AISCN_2026_Handbook.pdf",
-    os.path.join(os.getcwd(), "AISCN_2026_Handbook.pdf"),
-]
-
-def _scan_app_dir_for_handbook() -> str | None:
-    try:
-        for fname in os.listdir(_APP_DIR):
-            low = fname.lower()
-            if low.endswith(".pdf") and "aiscn" in low and "handbook" in low:
-                full = os.path.join(_APP_DIR, fname)
-                if os.path.getsize(full) > 0:
-                    return full
-    except OSError:
-        pass
-    return None
-
-def resolve_handbook_path() -> "str | None":
-    for p in HANDBOOK_CANDIDATES:
-        if p and os.path.exists(p) and os.path.getsize(p) > 0:
-            return p
-    return _scan_app_dir_for_handbook()
-
-# Back-compat constant
-HANDBOOK_PATH = resolve_handbook_path() or HANDBOOK_CANDIDATES[0]
-
-@st.cache_data(show_spinner=False)
-def _read_handbook_local(path: str, mtime: float, size: int) -> bytes:
-    """Local-file cache keyed on (path, mtime, size) so any file change invalidates."""
-    with open(path, "rb") as f:
-        return f.read()
-
-@st.cache_data(show_spinner=False, ttl=3600)
-def _fetch_handbook_remote(url: str) -> bytes:
-    """Remote-URL cache. TTL keeps it warm for an hour."""
-    import urllib.request
-    req = urllib.request.Request(url, headers={"User-Agent": "AISCN26-Portal/1.0"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return r.read()
-
-def load_handbook_bytes() -> bytes:
-    """Loads the AISCN handbook PDF. Empty bytes if neither local file nor URL works."""
-    # 1. Try local file
-    path = resolve_handbook_path()
-    if path:
-        stat = os.stat(path)
-        return _read_handbook_local(path, stat.st_mtime, stat.st_size)
-    # 2. Try remote URL from secrets
-    try:
-        url = st.secrets.get("handbook_url")  # type: ignore[attr-defined]
-    except Exception:
-        url = None
-    if url:
-        try:
-            data = _fetch_handbook_remote(url)
-            if data:
-                return data
-        except Exception:
-            return b""
-    return b""
-
-def handbook_diagnostics() -> dict:
-    """For the failure banner — shows exactly what was tried so the user can see why."""
-    rows = []
-    for p in HANDBOOK_CANDIDATES:
-        rows.append({"path": p, "exists": os.path.exists(p),
-                     "size": os.path.getsize(p) if os.path.exists(p) else 0})
-    scan = _scan_app_dir_for_handbook()
-    try:
-        has_url = bool(st.secrets.get("handbook_url"))  # type: ignore[attr-defined]
-    except Exception:
-        has_url = False
-    return {"candidates": rows, "scan_hit": scan, "url_secret_set": has_url,
-            "app_dir": _APP_DIR, "cwd": os.getcwd()}
-
 def is_blocked(email: str) -> bool:
     """Strict global limit: block once total submissions for an email reach SUBMISSION_LIMIT."""
     if not os.path.exists(DB_FILE):
@@ -473,22 +388,6 @@ footer {visibility: hidden;}
 }
 .stButton > button:hover::after { left: 130%; }
 
-/* download button shimmer */
-div[data-testid="stDownloadButton"] > button {
-    position: relative;
-    overflow: hidden;
-}
-div[data-testid="stDownloadButton"] > button::after {
-    content: "";
-    position: absolute;
-    top: 0; left: -100%;
-    width: 60%; height: 100%;
-    background: linear-gradient(90deg, transparent 0%, rgba(0,229,255,0.55) 50%, transparent 100%);
-    transition: left 0.6s ease;
-    pointer-events: none;
-}
-div[data-testid="stDownloadButton"] > button:hover::after { left: 130%; }
-
 /* hero CTA buttons get the sweep too */
 a[href="#submission-portal"], a[href="#workflow"] {
     position: relative;
@@ -607,23 +506,6 @@ section.main { scroll-behavior: smooth !important; }
     transform: translateY(1px) translateZ(0) !important;
     box-shadow: 0 2px 6px rgba(0,255,65,0.4) inset !important;
     transition-duration: 0.08s !important;
-}
-
-/* download handbook — same 3D physical feel in cyan */
-div[data-testid="stDownloadButton"] > button {
-    transform-style: preserve-3d;
-    transform: translateY(0) translateZ(0);
-    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, background-color 0.18s ease, color 0.18s ease !important;
-}
-div[data-testid="stDownloadButton"] > button:hover {
-    transform: translateY(-3px) translateZ(6px) !important;
-    box-shadow:
-        0 8px 16px -4px rgba(0,229,255,0.45),
-        0 0 24px rgba(0,229,255,0.55),
-        inset 0 0 14px rgba(0,229,255,0.18) !important;
-}
-div[data-testid="stDownloadButton"] > button:active {
-    transform: translateY(1px) translateZ(0) !important;
 }
 
 /* ====== HERO CTA buttons — beefier 3D ====== */
@@ -964,32 +846,6 @@ div[data-testid="stFileUploader"] p {
 .stButton > button:active {
     transform: translateY(0);
     box-shadow: 0 0 30px rgba(0,255,65,0.9) !important;
-}
-
-/* Download handbook */
-div[data-testid="stDownloadButton"] > button {
-    width: auto !important;
-    background: transparent !important;
-    color: var(--neon-cyan) !important;
-    padding: 12px 24px !important;
-    border-radius: 0 !important;
-    font-weight: bold !important;
-    font-family: 'Share Tech Mono', monospace !important;
-    text-decoration: none !important;
-    border: 1px solid var(--neon-cyan) !important;
-    cursor: pointer !important;
-    font-size: 14px !important;
-    letter-spacing: 0.15em !important;
-    text-transform: uppercase !important;
-    box-shadow: 0 0 12px rgba(0,229,255,0.25) inset, 0 0 10px rgba(0,229,255,0.2);
-}
-div[data-testid="stDownloadButton"] > button::before {
-    content: "[↓] ";
-}
-div[data-testid="stDownloadButton"] > button:hover {
-    background: var(--neon-cyan) !important;
-    color: #000 !important;
-    box-shadow: 0 0 22px rgba(0,229,255,0.7) !important;
 }
 
 /* Text inputs */
@@ -1395,57 +1251,6 @@ captures to prompt injections, from SOC consoles to agentic AI threat models.
 </div>
 </div>
 """, unsafe_allow_html=True)
-
-# === FUNCTIONAL DOWNLOAD HANDBOOK BUTTON ===
-dl_col, _ = st.columns([1, 4])
-with dl_col:
-    _hb_bytes = load_handbook_bytes()
-    if _hb_bytes:
-        st.download_button(
-            label="DOWNLOAD HANDBOOK",
-            data=_hb_bytes,
-            file_name="AISCN_Handbook_2026.pdf",
-            mime="application/pdf",
-            key="handbook_dl",
-        )
-    else:
-        st.cache_data.clear()
-        _diag = handbook_diagnostics()
-        rows_html = "".join(
-            f'<div style="font-family:JetBrains Mono,monospace; font-size:11px;">'
-            f'<span style="color:{"#00FF41" if r["exists"] else "#FF003C"};">'
-            f'{"[ FOUND ]" if r["exists"] else "[ MISSING ]"}</span> '
-            f'<span style="color:#7D8590;">{r["path"]}</span>'
-            f'{" — "+str(r["size"])+" bytes" if r["exists"] else ""}'
-            f'</div>'
-            for r in _diag["candidates"]
-        )
-        st.markdown(
-            f'<div class="mono" style="padding:14px; '
-            f'background:rgba(255,176,0,0.06); border:1px solid var(--neon-amber); border-radius:0; '
-            f'color:#FFB000; font-size:12px;">'
-            f'<div style="font-weight:bold; letter-spacing:0.15em; margin-bottom:8px;">'
-            f'&gt;&gt; WARN :: HANDBOOK PAYLOAD UNAVAILABLE ON THIS NODE</div>'
-            f'<div style="margin-bottom:10px;">paths checked:</div>'
-            f'{rows_html}'
-            f'<div style="margin-top:8px; font-size:11px;">scan hit: '
-            f'<span style="color:{"#00FF41" if _diag["scan_hit"] else "#FF003C"};">'
-            f'{_diag["scan_hit"] or "none"}</span></div>'
-            f'<div style="font-size:11px;">handbook_url secret set: '
-            f'<span style="color:{"#00FF41" if _diag["url_secret_set"] else "#FF003C"};">'
-            f'{"yes" if _diag["url_secret_set"] else "no"}</span></div>'
-            f'<div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,176,0,0.4); '
-            f'color:#E6EDF3; font-size:11px; line-height:1.6;">'
-            f'<strong style="color:#00E5FF;">To fix on Streamlit Cloud:</strong><br>'
-            f'<strong>Option A —</strong> commit the PDF to your repo:<br>'
-            f'<code style="color:#00FF41;">git add AISCN_2026_Handbook.pdf &amp;&amp; git commit -m "add handbook" &amp;&amp; git push</code><br>'
-            f'<strong>Option B —</strong> host the PDF (GitHub Release, Drive direct link, S3) and add to '
-            f'<code>.streamlit/secrets.toml</code>:<br>'
-            f'<code style="color:#00FF41;">handbook_url = "https://your.host/AISCN_2026_Handbook.pdf"</code>'
-            f'</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
 
 # Divider
 st.markdown('<div class="divider-ascii">▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰  /var/log/aiscn.log  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰</div>', unsafe_allow_html=True)
