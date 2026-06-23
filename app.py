@@ -139,7 +139,7 @@ def handle_submission(name: str, email: str, uploaded_file, sub_type: str):
 
         st.success(f">> UPLINK SUCCESSFUL. {sub_type} SECURED IN VAULT.")
         st.markdown(
-            f'<div class="mono text-cyan text-xs" style="margin-top:0.5rem; padding:10px; background:rgba(0, 229, 255, 0.05); border:1px solid var(--neon-cyan); border-radius:4px;">'
+            f'<div class="mono text-cyan text-xs" style="margin-top:0.5rem; padding:10px; background:rgba(30,144,255, 0.05); border:1px solid var(--neon-cyan); border-radius:4px;">'
             f'> FILE_ACCESS_URL: <a href="{drive_link}" target="_blank" style="color:var(--neon-cyan); text-decoration:underline; font-weight:bold;">{drive_link}</a>'
             f'</div>',
             unsafe_allow_html=True
@@ -157,28 +157,34 @@ CUSTOM_CSS = r"""
 @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Major+Mono+Display&family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* Kali-inspired premium hacker palette — bright and dangerous */
+    /* ════ KALI 3-COLOR PALETTE ════
+       Only 3 active hues: matrix green, dragon blue, alert red.
+       All accent aliases collapse to one of these three. */
     --bg-main: #060808;
     --bg-deep: #0A0F12;
     --bg-card: #0D1418;
     --bg-card-hover: #14202A;
-    --neon-green: #00FF66;          /* bright matrix green */
-    --neon-green-soft: #00DD55;
-    --neon-cyan: #00F0FF;            /* electric cyan */
-    --kali-blue: #2196F3;            /* Kali signature blue */
-    --neon-amber: #FFB300;           /* bright amber/warning */
-    --neon-orange: #FF6F00;          /* danger orange */
-    --neon-red: #FF1744;             /* alert crimson */
-    --neon-red-deep: #D50000;
-    --neon-purple: #BB00FF;          /* electric purple */
-    --neon-magenta: #FF00C8;         /* hot pink/magenta */
-    --neon-yellow: #FFEA00;          /* alert yellow */
-    --text-main: #E6F4EC;            /* bright off-white */
-    --text-bright: #FFFFFF;          /* pure white for emphasis */
-    --text-muted: #7A8C84;
+
+    --neon-green:      #00FF66;       /* primary — matrix bright */
+    --neon-green-soft: #00DD55;       /* slightly desaturated */
+    --kali-blue:       #1E90FF;       /* secondary — Kali dragon blue */
+    --neon-red:        #FF1744;       /* danger — alert crimson */
+
+    /* aliases (every other accent maps to one of the three) */
+    --neon-cyan:       var(--kali-blue);
+    --neon-purple:     var(--kali-blue);
+    --neon-amber:      var(--neon-red);
+    --neon-orange:     var(--neon-red);
+    --neon-magenta:    var(--neon-red);
+    --neon-red-deep:   var(--neon-red);
+    --neon-yellow:     var(--neon-green);
+
+    --text-main:   #E6F4EC;
+    --text-bright: #FFFFFF;
+    --text-muted:  #7A8C84;
     --border-color: #1A2A2E;
-    --border-glow: rgba(0, 255, 102, 0.45);
-    --scanline: rgba(0, 255, 102, 0.05);
+    --border-glow: rgba(0,255,102,0.45);
+    --scanline:    rgba(0,255,102,0.05);
 }
 
 /* ====== GLOBAL BASE ====== */
@@ -192,11 +198,11 @@ html, body, .stApp {
     background-color: #060808 !important;
     background-image:
         radial-gradient(ellipse at 15% 0%, rgba(0,255,102,0.10) 0%, transparent 50%),
-        radial-gradient(ellipse at 85% 0%, rgba(0,240,255,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 0%, rgba(30,144,255,0.07) 0%, transparent 50%),
         radial-gradient(ellipse at 50% 100%, rgba(255,23,68,0.07) 0%, transparent 55%),
-        radial-gradient(ellipse at 0% 50%, rgba(187,0,255,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 0% 50%, rgba(30,144,255,0.05) 0%, transparent 50%),
         repeating-linear-gradient(90deg, rgba(0,255,102,0.035) 0px, rgba(0,255,102,0.035) 1px, transparent 1px, transparent 32px),
-        repeating-linear-gradient(0deg, rgba(0,240,255,0.025) 0px, rgba(0,240,255,0.025) 1px, transparent 1px, transparent 32px),
+        repeating-linear-gradient(0deg, rgba(30,144,255,0.025) 0px, rgba(30,144,255,0.025) 1px, transparent 1px, transparent 32px),
         repeating-linear-gradient(0deg, rgba(0,255,102,0.04) 0px, rgba(0,255,102,0.04) 1px, transparent 1px, transparent 3px) !important;
     background-attachment: fixed !important;
 }
@@ -219,13 +225,13 @@ footer {visibility: hidden;}
 .mono { font-family: 'JetBrains Mono', 'Share Tech Mono', monospace; }
 .term { font-family: 'VT323', 'Share Tech Mono', monospace; }
 .text-neon { color: var(--neon-green); text-shadow: 0 0 5px rgba(0,255,102,0.7), 0 0 14px rgba(0,255,102,0.3); }
-.text-cyan { color: var(--neon-cyan); text-shadow: 0 0 5px rgba(0,240,255,0.7), 0 0 14px rgba(0,240,255,0.3); }
-.text-amber { color: var(--neon-amber); text-shadow: 0 0 5px rgba(255,179,0,0.7), 0 0 14px rgba(255,179,0,0.3); }
+.text-cyan { color: var(--neon-cyan); text-shadow: 0 0 5px rgba(30,144,255,0.7), 0 0 14px rgba(30,144,255,0.3); }
+.text-amber { color: var(--neon-amber); text-shadow: 0 0 5px rgba(255,23,68,0.7), 0 0 14px rgba(255,23,68,0.3); }
 .text-red { color: var(--neon-red); text-shadow: 0 0 5px rgba(255,23,68,0.7), 0 0 14px rgba(255,23,68,0.3); }
-.text-purple { color: var(--neon-purple); text-shadow: 0 0 5px rgba(187,0,255,0.7), 0 0 14px rgba(187,0,255,0.3); }
-.text-magenta { color: var(--neon-magenta); text-shadow: 0 0 5px rgba(255,0,200,0.7); }
-.text-yellow { color: var(--neon-yellow); text-shadow: 0 0 5px rgba(255,234,0,0.7); }
-.text-kali { color: var(--kali-blue); text-shadow: 0 0 5px rgba(33,150,243,0.7); }
+.text-purple { color: var(--neon-purple); text-shadow: 0 0 5px rgba(30,144,255,0.7), 0 0 14px rgba(30,144,255,0.3); }
+.text-magenta { color: var(--neon-magenta); text-shadow: 0 0 5px rgba(255,23,68,0.7); }
+.text-yellow { color: var(--neon-yellow); text-shadow: 0 0 5px rgba(0,255,102,0.7); }
+.text-kali { color: var(--kali-blue); text-shadow: 0 0 5px rgba(30,144,255,0.7); }
 .text-muted { color: var(--text-muted); }
 .text-xs { font-size: 0.75rem; }
 .text-sm { font-size: 0.875rem; }
@@ -376,7 +382,7 @@ footer {visibility: hidden;}
     box-shadow: 0 0 12px var(--neon-green), 0 0 24px rgba(0,255,102,0.4);
     opacity: 0; animation: pop-in 0.3s 1.4s ease-out forwards;
 }
-.decrypt-tag { color: var(--neon-cyan); text-shadow: 0 0 6px var(--neon-cyan), 0 0 14px rgba(0,240,255,0.4); }
+.decrypt-tag { color: var(--neon-cyan); text-shadow: 0 0 6px var(--neon-cyan), 0 0 14px rgba(30,144,255,0.4); }
 @keyframes typing-once {
     0%   { max-width: 0; }
     100% { max-width: 32ch; }
@@ -405,7 +411,7 @@ footer {visibility: hidden;}
     position: absolute;
     top: 0; left: -100%;
     width: 60%; height: 100%;
-    background: linear-gradient(90deg, transparent 0%, rgba(0,255,65,0.55) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(0,255,102,0.55) 50%, transparent 100%);
     transition: left 0.6s ease;
     pointer-events: none;
 }
@@ -434,7 +440,7 @@ a[href="#submission-portal"]:hover::after, a[href="#workflow"]:hover::after { le
     position: absolute;
     top: -100%; left: 0;
     width: 100%; height: 100%;
-    background: linear-gradient(180deg, transparent 0%, rgba(0,255,65,0.08) 50%, transparent 100%);
+    background: linear-gradient(180deg, transparent 0%, rgba(0,255,102,0.08) 50%, transparent 100%);
     transition: top 0.7s ease;
     pointer-events: none;
 }
@@ -507,7 +513,7 @@ section.main { scroll-behavior: smooth !important; }
 
 /* stat numbers float toward viewer */
 .cyber-card:hover .text-neon.mono {
-    text-shadow: 0 0 14px var(--neon-green), 0 0 28px rgba(0,255,65,0.55);
+    text-shadow: 0 0 14px var(--neon-green), 0 0 28px rgba(0,255,102,0.55);
 }
 
 /* ====== 3D BUTTONS — physical press ====== */
@@ -550,7 +556,7 @@ a[href="#submission-portal"]:hover, a[href="#workflow"]:hover {
     transform: translateY(-2px) !important;
     box-shadow:
         0 8px 14px -6px rgba(0,0,0,0.55),
-        0 0 12px rgba(63,211,122,0.25) !important;
+        0 0 12px rgba(0,255,102,0.25) !important;
 }
 a[href="#submission-portal"]:active, a[href="#workflow"]:active {
     transform: translateY(0) !important;
@@ -560,8 +566,8 @@ a[href="#submission-portal"]:active, a[href="#workflow"]:active {
 input {
     transform: translateZ(0);
     box-shadow:
-        0 0 8px rgba(0,255,65,0.18) inset,
-        0 2px 0 rgba(0,255,65,0.12) !important;
+        0 0 8px rgba(0,255,102,0.18) inset,
+        0 2px 0 rgba(0,255,102,0.12) !important;
 }
 
 /* ====== TITLE — soft 3D lift on hover ====== */
@@ -586,7 +592,7 @@ input {
     box-shadow:
         0 0 10px var(--neon-cyan),
         0 0 24px var(--neon-cyan),
-        0 0 44px rgba(0,240,255,0.5);
+        0 0 44px rgba(30,144,255,0.5);
 }
 
 /* ====== TERM-WINDOW subtle 3D ====== */
@@ -714,8 +720,8 @@ div[data-testid="stFileUploader"] > section:hover {
     background-color: var(--bg-card-hover);
     border-color: var(--neon-green);
     box-shadow:
-        0 0 18px rgba(0,255,65,0.25),
-        inset 0 0 24px rgba(0,255,65,0.04);
+        0 0 18px rgba(0,255,102,0.25),
+        inset 0 0 24px rgba(0,255,102,0.04);
     transform: translateY(-2px);
 }
 .cyber-card-top-accent {
@@ -728,11 +734,11 @@ div[data-testid="stFileUploader"] > section:hover {
 }
 .cyber-card-top-accent:nth-child(3n) {
     border-top-color: var(--neon-cyan);
-    box-shadow: 0 -2px 12px -2px rgba(0,240,255,0.4);
+    box-shadow: 0 -2px 12px -2px rgba(30,144,255,0.4);
 }
 .cyber-card-top-accent:nth-child(4n) {
     border-top-color: var(--neon-purple);
-    box-shadow: 0 -2px 12px -2px rgba(187,0,255,0.4);
+    box-shadow: 0 -2px 12px -2px rgba(30,144,255,0.4);
 }
 
 /* corner brackets */
@@ -802,13 +808,13 @@ a[href="#submission-portal"]:hover {
     background: var(--neon-cyan) !important;
     color: #050708 !important;
     border-color: var(--neon-cyan) !important;
-    box-shadow: 0 0 24px rgba(0,240,255,0.7), 0 0 52px rgba(0,240,255,0.3) !important;
+    box-shadow: 0 0 24px rgba(30,144,255,0.7), 0 0 52px rgba(30,144,255,0.3) !important;
 }
 a[href="#workflow"]:hover {
     color: var(--neon-cyan) !important;
     border-color: var(--neon-cyan) !important;
-    background: rgba(0,240,255,0.06) !important;
-    box-shadow: 0 0 18px rgba(0,240,255,0.4) !important;
+    background: rgba(30,144,255,0.06) !important;
+    box-shadow: 0 0 18px rgba(30,144,255,0.4) !important;
     text-shadow: 0 0 6px var(--neon-cyan);
 }
 
@@ -864,8 +870,8 @@ div[data-testid="stFileUploader"] > section:hover {
     border-color: var(--neon-cyan) !important;
     background-color: var(--bg-card-hover) !important;
     box-shadow:
-        inset 0 0 18px rgba(0,240,255,0.10),
-        0 0 18px rgba(0,240,255,0.25);
+        inset 0 0 18px rgba(30,144,255,0.10),
+        0 0 18px rgba(30,144,255,0.25);
 }
 div[data-testid="stFileUploader"] section button {
     background: transparent !important;
@@ -929,9 +935,9 @@ input:focus {
     border-color: var(--neon-cyan) !important;
     box-shadow:
         0 0 0 1px var(--neon-cyan),
-        0 0 16px rgba(0,240,255,0.55),
-        0 0 36px rgba(0,240,255,0.22),
-        inset 0 0 12px rgba(0,240,255,0.10) !important;
+        0 0 16px rgba(30,144,255,0.55),
+        0 0 36px rgba(30,144,255,0.22),
+        inset 0 0 12px rgba(30,144,255,0.10) !important;
     outline: none !important;
 }
 
@@ -1106,7 +1112,7 @@ a:hover { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
 
 /* ====== UPLOADED FILE NAME color fix ====== */
 div[data-testid="stFileUploader"] li {
-    background: rgba(0,255,65,0.06) !important;
+    background: rgba(0,255,102,0.06) !important;
     color: var(--neon-green) !important;
     border: 1px solid var(--neon-green) !important;
     border-radius: 0 !important;
@@ -1165,8 +1171,8 @@ div[data-testid="stFileUploader"] section button:hover {
     position: absolute; inset: 0;
     background: repeating-linear-gradient(
         0deg,
-        rgba(63,211,122,0.04) 0px,
-        rgba(63,211,122,0.04) 1px,
+        rgba(0,255,102,0.04) 0px,
+        rgba(0,255,102,0.04) 1px,
         transparent 1px, transparent 3px);
     pointer-events: none;
     animation: boot-flicker 0.18s steps(2) infinite;
@@ -1196,7 +1202,7 @@ div[data-testid="stFileUploader"] section button:hover {
     margin-bottom: 18px;
     opacity: 0;
     animation: fadeup 0.45s ease-out 0.05s 1 forwards;
-    text-shadow: 0 0 4px rgba(63,211,122,0.4);
+    text-shadow: 0 0 4px rgba(0,255,102,0.4);
     letter-spacing: 0;
 }
 .boot-tag {
@@ -1240,7 +1246,7 @@ div[data-testid="stFileUploader"] section button:hover {
     margin-top: 18px;
     height: 8px;
     border: 1px solid var(--border-color);
-    background: rgba(63,211,122,0.04);
+    background: rgba(0,255,102,0.04);
     opacity: 0;
     animation: fadeup 0.3s ease-out 2.55s 1 forwards;
     position: relative; overflow: hidden;
@@ -1249,7 +1255,7 @@ div[data-testid="stFileUploader"] section button:hover {
     height: 100%;
     width: 0;
     background: linear-gradient(90deg, var(--neon-green), var(--neon-red));
-    box-shadow: 0 0 8px rgba(63,211,122,0.5);
+    box-shadow: 0 0 8px rgba(0,255,102,0.5);
     animation: boot-bar-fill 1.3s ease-out 2.6s 1 forwards;
 }
 @keyframes boot-bar-fill {
@@ -1267,7 +1273,7 @@ div[data-testid="stFileUploader"] section button:hover {
     animation: granted-pop 0.5s cubic-bezier(0.16,1,0.3,1) 3.7s 1 forwards;
     text-shadow:
         0 0 4px var(--neon-green),
-        0 0 18px rgba(63,211,122,0.55);
+        0 0 18px rgba(0,255,102,0.55);
 }
 .boot-granted .bracket { color: var(--neon-red); }
 @keyframes granted-pop {
@@ -1317,7 +1323,7 @@ div[data-testid="stFileUploader"] section button:hover {
         text-shadow:
             0 0 1px rgba(255,255,255,0.6),
             0 0 4px var(--neon-green),
-            0 0 12px rgba(63,211,122,0.35);
+            0 0 12px rgba(0,255,102,0.35);
     }
     15% {
         transform: translate(-2px, 0);
@@ -1351,20 +1357,20 @@ div[data-testid="stFileUploader"] section button:hover {
     box-shadow:
         0 22px 40px -18px rgba(0,0,0,0.85),
         0 8px 18px -10px rgba(0,0,0,0.6),
-        0 0 18px -2px rgba(63,211,122,0.22),
-        inset 0 0 22px rgba(63,211,122,0.04);
+        0 0 18px -2px rgba(0,255,102,0.22),
+        inset 0 0 22px rgba(0,255,102,0.04);
 }
 .cyber-card:nth-child(2n):hover {
     transform: perspective(1200px) rotateX(2deg) rotateY(2deg) translateY(-3px) translateZ(6px);
     box-shadow:
         0 22px 40px -18px rgba(0,0,0,0.85),
         0 8px 18px -10px rgba(0,0,0,0.6),
-        0 0 18px -2px rgba(232,72,85,0.22),
-        inset 0 0 22px rgba(232,72,85,0.04);
+        0 0 18px -2px rgba(255,23,68,0.22),
+        inset 0 0 22px rgba(255,23,68,0.04);
 }
 /* animated border highlight that travels around card on hover */
 .cyber-card::after {
-    background: linear-gradient(180deg, transparent 0%, rgba(63,211,122,0.10) 50%, transparent 100%);
+    background: linear-gradient(180deg, transparent 0%, rgba(0,255,102,0.10) 50%, transparent 100%);
 }
 .cyber-card:hover::after { top: 100%; transition-duration: 0.85s; }
 
@@ -1407,7 +1413,7 @@ div[data-testid="stFileUploader"] section button:hover {
     border-top-color: var(--neon-red);
     box-shadow:
         0 18px 36px -16px rgba(0,0,0,0.85),
-        0 0 14px -4px rgba(232,72,85,0.18) !important;
+        0 0 14px -4px rgba(255,23,68,0.18) !important;
 }
 
 /* ====== HEX/SYS FLOATING STATUS WIDGET (bottom-right) ====== */
@@ -1660,7 +1666,7 @@ st.markdown("""
 <h3 style="font-family: 'Share Tech Mono', monospace !important; font-weight: 400; margin-bottom: 1rem; color:var(--text-main);">
 &gt;_ "45-Day Immersive Internship Program"
 </h3>
-<div style="border-left: 2px solid var(--neon-green); padding-left: 1rem; margin-bottom: 2rem; background: rgba(0,255,65,0.02);">
+<div style="border-left: 2px solid var(--neon-green); padding-left: 1rem; margin-bottom: 2rem; background: rgba(0,255,102,0.02);">
 <p class="text-muted" style="line-height: 1.7; max-width: 92%; font-family:'JetBrains Mono', monospace; font-size: 0.92rem;">
 Building the next generation of cybersecurity and AI security engineers through
 structured learning, practical labs, industry projects and mentor guidance — a
@@ -1820,7 +1826,7 @@ st.markdown("""
 
 <div class="timeline-item">
 <div class="timeline-dot active"></div>
-<div class="cyber-card" style="border-color: var(--neon-cyan); box-shadow: 0 0 18px rgba(0,229,255,0.25), inset 0 0 30px rgba(0,229,255,0.04);">
+<div class="cyber-card" style="border-color: var(--neon-cyan); box-shadow: 0 0 18px rgba(30,144,255,0.25), inset 0 0 30px rgba(30,144,255,0.04);">
 <span class="corner tl" style="border-color:var(--neon-cyan);"></span>
 <span class="corner tr" style="border-color:var(--neon-cyan);"></span>
 <span class="corner bl" style="border-color:var(--neon-cyan);"></span>
@@ -1885,11 +1891,11 @@ st.markdown("""
 <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">Network &amp; Web Security<br>Observation Report</h4>
 <p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem; font-family:'JetBrains Mono', monospace;">Document how networking and web security concepts manifest in a real lab environment — Wireshark captures, Burp annotations, OWASP findings, personal reflection.</p>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">ASSIGNED</div>
 <div class="mono text-neon text-sm">21 Jun 2026</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">REVIEW</div>
 <div class="mono text-neon text-sm">28 Jun 2026</div>
 </div>
@@ -1906,11 +1912,11 @@ st.markdown("""
 <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">Security Assessment &amp;<br>Pentesting Workflow Report</h4>
 <p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem; font-family:'JetBrains Mono', monospace;">Simulate a junior pentester's workflow on a legal, intentionally vulnerable lab target (TryHackMe / HTB free / Juice Shop) and produce a structured, professional security assessment.</p>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">ASSIGNED</div>
 <div class="mono text-neon text-sm">05 Jul 2026</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">REVIEW</div>
 <div class="mono text-neon text-sm">12 Jul 2026</div>
 </div>
@@ -1927,11 +1933,11 @@ st.markdown("""
 <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; line-height: 1.4;">AI Security Risk Assessment &amp;<br>Secure AI Application Design</h4>
 <p class="text-muted text-sm" style="line-height: 1.5; margin-bottom: 1.5rem; font-family:'JetBrains Mono', monospace;">Capstone deliverable — choose a hypothetical AI-powered application, conduct an AI security risk assessment (OWASP LLM Top 10 + MITRE ATLAS) and propose a secure design including agentic considerations.</p>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">ASSIGNED</div>
 <div class="mono text-neon text-sm">15 Jul 2026</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.5rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px;">PRESENTATION</div>
 <div class="mono text-neon text-sm">26 Jul 2026</div>
 </div>
@@ -1989,19 +1995,19 @@ st.markdown("""
 <span class="text-muted">Code of Conduct</span> <span class="mono text-cyan">Strict adherence</span>
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">ISSUED</div>
 <div class="mono text-neon text-sm">Internship Completion</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,229,255,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(30,144,255,0.03);">
 <div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">&gt; 70%</div>
 <div class="mono text-cyan text-sm">Performance Letter</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,255,65,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,255,102,0.03);">
 <div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">TOP 10%</div>
 <div class="mono text-neon text-sm">Letter of Excellence</div>
 </div>
-<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(0,229,255,0.03);">
+<div style="border: 1px solid var(--border-color); padding: 0.75rem; background: rgba(30,144,255,0.03);">
 <div class="mono text-muted" style="font-size: 10px; margin-bottom: 4px;">AWARD</div>
 <div class="mono text-cyan text-sm">Best Project (per category)</div>
 </div>
